@@ -1,0 +1,216 @@
+---
+title: "HW8"
+author: "Yarou Xu"
+date: "April 11, 2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Q1.
+``` {r}
+par(xpd = NA)
+plot(NA, NA, type = "n", xlim = c(0, 20), ylim = c(0, 100), xlab = "Years", ylab = "Hits")
+
+# t1: Years < 5
+lines(x = c(5, 5), y = c(0, 100))
+text(x = 5, y = 108, labels = "t1", col="red")
+
+# t2: Years < 5 with Hits < 20
+lines(x = c(0, 5), y = c(20, 20))
+text(x = 2.5, y = 10, labels = "R1")
+text(x = 2.5, y = 50, labels = "R2")
+text(x = -0.3, y = 20, labels = "t2", col="red")
+
+# t3: Years > 5 with Hits < 40
+lines(x = c(5, 20), y = c(40, 40))
+text(x = 10, y = 20, labels = "R3")
+text(x = 4.5, y = 40, labels = "t3", col="red")
+
+# t4: 5 < Years < 10 with Hits > 40
+lines(x = c(10, 10), y = c(40, 100))
+text(x = 7.5, y = 80, labels = "R4")
+text(x = 10, y = 35, labels = "t4", col="red")
+
+# t5: Years > 10 with 40 < Hits < 80
+lines(x = c(10, 20), y = c(80, 80))
+text(x = 15, y = 70, labels = "R5")
+text(x = 15, y = 90, labels = "R6")
+text(x = 9.5, y = 80, labels = "t5", col="red")
+```
+
+``` {r}
+# Read in the neural net picture
+library(imager)
+img <- load.image("tree .png")
+plot(img)
+```
+
+# Q4.
+## (a)
+``` {r}
+img2 <- load.image("tree2.png")
+plot(img2)
+```
+
+## (b)
+``` {r}
+plot(NA, NA, type = "n", xlim = c(-1, 2), ylim = c(0, 3), xlab = "X1", ylab = "X2")
+
+# X2 > 2
+lines(x = c(-1, 2), y = c(2, 2))
+text(x = 0.5, y = 2.5, labels = "2.49")
+
+# X2 < 1 with X1 < 1
+lines(x = c(-1, 2), y = c(1, 1))
+text(x = 0, y = 0.5, labels = "-1.80")
+
+# X2 < 1 with X1 > 1
+lines(x = c(1, 1), y = c(0, 1))
+text(x = 1.5, y = 0.5, labels = "0.63")
+
+# 1 < X2 < 2 with X1 < 0
+# 1 < X2 < 2 with X1 > 0
+lines(x = c(0, 0), y = c(1, 2))
+text(x = -0.5, y = 1.5, labels = "-1.06")
+text(x = 1, y = 1.5, labels = "0.21")
+```
+
+# Q9.
+## (a)
+``` {r}
+library(ISLR)
+set.seed(1)
+train <- sample(nrow(OJ),800)
+train_OJ <- OJ[train,]
+test_OJ <- OJ[-train,]
+```
+
+## (b)
+``` {r}
+library(tree)
+tree.oj <- tree(Purchase~., data = train_OJ)
+summary(tree.oj)
+```
+
+The training error rate obtained from this tree model is 0.165. And there are 8 terminal nodes. The variables actually used in this tree model are "LoyalCH", "PriceDiff", "SpecialCH" and "ListPriceDiff".
+
+## (d)
+``` {r}
+plot(tree.oj)
+text(tree.oj, pretty =0, cex= .6)
+```
+
+We can find out that the variables actually used in this tree model are "LoyalCH", "PriceDiff", "SpecialCH" and "ListPriceDiff". And the most important indicator of "Purchase"" appears to be "LoyalCH", since the ???rst branch di???erentiates the intensity of customer brand loyalty to CH. And, the top three cutpoints are all "LoyalCH".
+
+## (e)
+``` {r}
+pred.tree <- predict(tree.oj, test_OJ[2:18], type = "class")
+table(pred.tree, test_OJ$Purchase)
+
+# Compute the test error rate
+(49 + 12)/270
+```
+
+The rest error rate is 22.59%.
+
+## (f)
+``` {r}
+set.seed(2)
+cv.oj <- cv.tree(tree.oj, FUN = prune.misclass)
+cv.oj
+```
+
+The tree with 2 terminal nodes results in the lowest cross-validation error rate. Therefore, the optimal tree size is 2.
+
+## (g)
+``` {r}
+plot(cv.oj$size, cv.oj$dev, type = "b", xlab = "Tree size", ylab = "Corss-validation error rate")
+```
+
+## (h)
+The tree with 2 terminal nodes results in the lowest cross-validation error rate.
+
+## (i)
+``` {r}
+prune.oj <- prune.misclass(tree.oj, best=2)
+plot(prune.oj)
+text(prune.oj, pretty = 0)
+```
+
+## (j)
+``` {r}
+# Pruned tree
+summary(tree.oj)
+
+# Un-pruned tree
+summary(prune.oj)
+```
+
+The training error rates of the pruned tree is higher than that of the un-pruned tree.
+
+## (k)
+``` {r}
+prune.pred <- predict(prune.oj, test_OJ[2:18], type = "class")
+table(prune.pred, test_OJ$Purchase)
+# Compute the test error for the pruned tree
+(40 + 30)/270
+```
+
+The test error rates of the pruned tree is higher than that of the un-pruned tree.
+
+# Q12.
+``` {r}
+# Make a train set and test set
+load("mnist68.RData")
+hist(mnist68$V350)
+hist(mnist68$V380)
+hist(mnist68$V460)
+hist(mnist68$V550)
+hist(mnist68$V600)
+df = mnist68[c("V350","V380","V460","V550","V600","labels")]
+set.seed(1)
+train = sample(nrow(mnist68),8000)
+train_df = df[train,]
+test_df = df[-train,]
+train_df["labels"][train_df["labels"] == 6] <- 0
+train_df["labels"][train_df["labels"] == 8] <- 1
+
+# Perform a logistic regression
+logit <- glm(labels~., data=train_df, family = "binomial")
+logit.probs <- predict(logit, test_df, type="response")
+logit.pred <- ifelse(logit.probs > 0.5, 1, 0)
+table(logit.pred, test_df$labels)
+
+# Compute the test accuracy  using logistic regression
+1 - (440+504)/3769
+```
+The test accuracy using logistic regression method is 74.95%.
+
+``` {r}
+# Perform a boosting method
+library(gbm)
+set.seed(1)
+boost <- gbm(labels~.,data=train_df, distribution= "gaussian", n.trees=5000, interaction.depth=4)
+boost.prob <- predict(boost, test_df, n.trees = 5000)
+boost.pred <- ifelse(boost.prob > 0.5, 1, 0)
+table(boost.pred, test_df$labels)
+
+# Compute the test accuracy  using boosting method
+1 - (412+439)/3769
+```
+The test accuracy using boosting method is 77.42%.
+
+``` {r}
+# Perform a random forest
+set.seed(1)
+random <- randomForest(labels~.,data=train_df, mtry=2 , n.trees=5000)
+random.prob <- predict(random, test_df)
+random.pred <- ifelse(random.prob > 0.5, 1, 0)
+table(random.pred, test_df$labels)
+
+# Compute the test accuracy using random forest method
+1 - (394+437)/3769
+```
+
+The accuracy using random forest method is 77.95%. Therefore, random forest approach yields the best performance.

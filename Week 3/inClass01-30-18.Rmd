@@ -1,0 +1,147 @@
+---
+title: 'Analytics 512: In-Class 1/30/18'
+output:
+  html_document: default
+  pdf_document:
+    fig_caption: yes
+---
+ 
+## 1. Interactions
+
+  
+## 2. Nonlinear Transformations of Predictors  
+```{r}
+Advertising <- read.csv("./Advertising.csv")
+plot(Advertising$Sales, Advertising$TV)
+plot(Advertising$Sales, sqrt(Advertising$TV))
+testlm <- lm(Sales ~ TV + sqrt(TV), data = Advertising)
+summary(testlm)
+
+# Try a few other nonlinear transformations and interactions.
+
+testlm <- lm(Sales ~ sqrt(TV) + Radio + Newspaper, data = Advertising)
+summary(testlm)
+
+testlm <- lm(Sales ~ sqrt(TV) + Radio + sqrt(TV*Radio), data = Advertising)
+
+testlm <- lm(Sales ~ sqrt(TV) +  sqrt(TV*Radio) + sqrt(Newspaper), data = Advertising)
+
+testlm <- lm(Sales ~ TV + Newspaper/(Radio+1), data = Advertising)
+
+```
+
+##3. Group exercise, Polynomial Regression
+In this exercise, we'll explore polynomial regression techniques for fitting nonlinear data. 
+
+1. Generate a synthetic dataset where $y$ is drawn from a quadratic polynomial of $x$ with additional of Gaussian noise. 
+
+2. Write a function that takes in a matrix $X$ and a vector $Y$ and returns the OLS solution for the betas. Do this using the explicit formula, $(X^{T}X)^{-1}X^{T}Y$. 
+
+3. Construct a design matrix $X$ for a simple model $Y = \beta_0 + \beta_1 X$. Remember: there are two columns in the design matrix, what is in the column corresponding to $\beta_0$?
+
+4. Solve the simple model using your OLS function. Evaluate the model parameters as well as how "well" the model captures the variance in the data (compute RSS).
+
+5. Create a new model matrix $X$ with a new predictor column corresponding to $x^2$. Solve this model. Do your estimated Betas match up with the true Betas.
+
+6. If time permitting, redo this exercise with "less noisy" $y$ data and refit the quadratic model. Verify that the estimated Betas are aligned with what you expect. 
+
+## 4. Autoregression
+We won't spend much time this semester going over time series methods, but there's a simple method we can employ using just the knowledge we have of Multiple Regression. Consider a time series of temporally-ordered observations $X_1, X_2,...,X_{t-1}, X_t, X_{t+1},...$. Our goal is make accurate predictions of the future given our past observations. 
+
+In an Autoregression Model of order $K$, our prediction of each time point $X_{t}$ is that of a weighted, linear combinations of $K$ previous time steps:
+
+$$
+X_{t} = \beta_0 + \sum_{i=1}^K \beta_i X_{t-i} + \epsilon.
+$$
+
+This time series method takes exactly the same form as multiple regression, but where we've created predictors that are simply $K$-step lookbacks. We then estimate coefficients in the usual way. 
+
+The simplest version is an order-1 model, denoted $AR(1)$, where we consider only a single time step lookback.
+
+
+**A.** Use R's **load** function to import the dataset _retail.RData_. This data represents a time series of retail sales totals over a period of many years. The column _UnadjustedSales_ records the raw dollar amount of sales that occur in a given month. The column _AdjustedSales_ has taken into account the seasonality of retail sales and controlled for the month of the year. We will build an $AR(2)$ model of the _UnadjustedSales_.
+
+**B.** Create a new dataframe that will have three columns, representing $X$, $X_{t-1}$, and $X_{t-2}$. Note we'll have to reduce the total number of rows of this new data frame so that it has two fewer rows than our original time series. 
+
+```{r}
+load("retail.RData")
+#library(ISLR)
+N <- nrow(retail)
+
+timeseries <- data.frame( 
+  Y = retail$UnadjustedSales[3:N], 
+  X_1 = retail$UnadjustedSales[2:(N-1)],
+  X_2 = retail$UnadjustedSales[1:(N-2)] )
+```
+
+**C.** Compute the autoregression using something like **lm(Y ~ X1 + X2, data = timeseries)**. How well did the model do?
+
+**D.** Repeat with the _AdjustedSales_ time series. Did we do better? Think back on what we've learned about interaction terms, how could we have done a monthly adjustment in the first model?
+
+**E.** There's a function called *ar()* in base R. Try it out and compare. 
+
+##5. Some Potential Problems
+  1. Nonlinearity of relationship 
+    * Make sure to look at residuals
+  2. Correlated errors
+    * Make sure to look at residuals
+  3. Non-constant errors (Heteroskedasticity)
+    * Make sure to look at residuals
+  4. Outliers
+  5. High Leverage Points
+  6. Collinearity
+  
+  R provides many helpful diagnostic plots so we can evaluate the results of a linear regression model. These include
+  
+    * residuals plot
+    * QQ plot of residuals
+    * Scale-location plot
+    * Leverage plot
+    
+Let's take a look at these diagnostic plots and get an understanding of them. First, we'll generate some simple data which has no obvious problems.
+  
+```{r}
+
+x <- 1:20
+y = 1 + 2*x + rnorm(20)
+fit1 = lm(y ~ x)
+summary(fit1)
+
+plot(fit1)
+```
+
+Now we'll add a another data point which has high leverage.
+```{r}
+# Now we add a high-leverage point
+X = matrix(c(rep(1,10),1:10),ncol = 2)
+X[10,2] = 20
+y = X[,2] + rnorm(10)
+plot(X[,2],y)
+myfit = lm(y ~ X[,2])
+abline(myfit, col = 2)
+
+plot(myfit)
+# notice that the new point has leverage of nearly 1, and residual of nearly 0.
+# It will "pull the the squares line towards its observation".
+# Therefore, its residual is typically not very large.
+
+```
+
+
+Collinearity
+
+```{r}
+delta = .1
+x1 = rnorm(100)
+x2 = x1 + delta*rnorm(100)
+cor(x1,x2)
+
+# Now make a response that depends on both predictors.
+
+y <- 1 + 2*x1 + 3*x2 + rnorm(100)
+fit0 <- lm(y ~ x1+x2)
+summary(fit0)
+
+
+```
+Note R^2 and F for the total model. Yet one of the predictors has low t-score and p-value. And also, look at the estimated coefficients. Collinear predictors can result in mis-estimation of the coefficients. 

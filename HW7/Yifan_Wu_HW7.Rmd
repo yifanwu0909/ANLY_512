@@ -1,0 +1,287 @@
+---
+title: "Yifan_Wu_HW7"
+author: "Yifan Wu"
+date: "April 3, 2018"
+output: html_document
+---
+
+##Section 6.8: #11 (use LASSO): We will now try to predict per capita crime rate in the Boston data set.
+
+###(a). Try out the lasso. Present and discuss results for the approaches that you consider.
+
+```{r}
+rm(list = setdiff(ls(), lsf.str()))
+```
+
+
+```{r}
+library(ISLR)
+library(MASS)
+library(caret)
+
+attach(Boston)
+dim(Boston)
+```
+
+```{r}
+set.seed(11)
+sample.train = sample(1:dim(Boston)[1], dim(Boston)[1] / 2) #Sample all rows, only keep half of them
+sample.test = - sample.train
+
+train <- Boston[sample.train, ]
+test <- Boston[sample.test, ]
+x=model.matrix(crim ~ ., data = train )[,-1]
+y=train$crim
+```
+
+
+```{r}
+library(glmnet)
+grid <- 10 ^ seq(10, -10, length = 1000)
+
+set.seed(0403)
+lasso.mod =glmnet(x, y, alpha=1, lambda = grid, thresh = 1e-12)
+#dim(coef(ridge.mod ))
+
+cv.out =cv.glmnet(x, y, alpha=1, lambda = grid, thresh = 1e-12)
+plot(cv.out)
+bestlam =cv.out$lambda.min
+bestlam
+
+```
+
+```{r}
+x_test=model.matrix (crim ~., test )[,-1]
+y_test=test$crim
+
+lasso.pred = predict(lasso.mod, s=bestlam, newx=x_test)
+mean((lasso.pred - y_test)^2)
+```
+
+Fit the model using the full data: 
+
+```{r}
+x=model.matrix(crim~.,Boston )[,-1]
+y=Boston$crim
+  
+out=glmnet(x,y,alpha=1, lambda = grid)
+lasso.coef=predict(out, type = "coefficients", s = bestlam)
+lasso.coef
+```
+
+
+
+###(c). Does your chosen model involve all of the features in the data set? Why or why not?
+
+```{r}
+lasso.coef
+```
+
+For the lasso model, only the following 7 predictors are involved in the model: 
+
+zn; chas; dis; rad; black, lstat, medv.
+
+In the case of the lasso, the $l_1$ penalty has the effect of forcing some of the coefficient estimates to be exactly equal to zero when the tuning parameter $\lambda$ is sufficiently large. Hence, much like best subset selection, the lasso performs variable selection. The lasso yields models that involve only a subset of the variables.
+
+
+##Section 7.9: #3 Note the intercepts, slopes, and other relevant information.
+
+```{r}
+x = -2:2
+y = 1 + x + -2 * (x-1)^2 * I(x>=1)
+plot(x, y)
+```
+
+From the plot above, the y-intercept is 1 (y = 1 when x = 0).
+
+To the left of the vertical line x = 1, the function is linear: $y = x + 1$. 
+
+To the right of the vertical line x = 1, the function is quadratic: $y = -2(x-1)^2 + x + 1 = -2x^2 + 3x$.
+
+
+##Section 7.9: #9a-c This question uses the variables dis (the weighted mean of distances to five Boston employment centers) and nox (nitrogen oxides concentration in parts per 10 million) from the Boston data. We will treat dis as the predictor and nox as the response.
+
+###(a). Use the poly() function to fit a cubic polynomial regression to predict nox using dis. Report the regression output, and plot the resulting data and polynomial fits.
+
+```{r}
+set.seed(1)
+fit <- lm(nox ~ poly(dis, 3), data = Boston)
+summary(fit)
+```
+
+```{r}
+dis.range <- range(Boston$dis)
+dis.grid <- seq(from = dis.range[1], to = dis.range[2], by = 0.1)
+preds <- predict(fit, list(dis = dis.grid))
+plot(nox ~ dis, data = Boston, col = "darkgrey")
+lines(dis.grid, preds, col = "red", lwd = 2)
+```
+
+
+
+###(b). Plot the polynomial fits for a range of different polynomial degrees (say, from 1 to 10), and report the associated residual sum of squares.
+
+```{r}
+rss <- rep(NA, 10)
+for (i in 1:10){
+  #set.seed(1)
+  fit.i <- lm(nox ~ poly(dis, i), data = Boston)
+  rss[i] <- sum(fit.i$residuals^2)
+  print(sum(fit.i$residuals^2))
+}
+```
+
+```{r}
+plot(1:10, rss, xlab = "Degree", ylab = "RSS", type = "l")
+```
+
+As we can see from the plot, the RSS is monotonically decreasing as we increase the degree of polynomial when we fit the data. 
+
+###(c).Perform cross-validation or another approach to select the optimal degree for the polynomial, and explain your results.
+
+```{r}
+library (boot)
+deltas <- rep(NA, 10)
+for (i in 1:10) {
+    fit <- glm(nox ~ poly(dis, i), data = Boston)
+    deltas[i] <- cv.glm(Boston, fit, K = 10)$delta[1]
+    print(paste('The ', i, 'th test MSE is', deltas[i]))
+}
+plot(1:10, deltas, xlab = "Degree", ylab = "Test MSE", type = "l")
+min(deltas)
+```
+
+When we use polynomial to the 3rd degree, the test MSE is the smallest. So cubic polynomial is the best fit. 
+
+
+##Section 7.9: #10ab This question relates to the College data set.
+
+###(a). Split the data into a training set and a test set. Using out-of-state tuition as the response and the other variables as the predictors, perform forward stepwise selection on the training set in order to identify a satisfactory model that uses just a subset of the predictors.
+
+```{r}
+library(leaps)
+set.seed(1)
+attach(College)
+train <- sample(length(Outstate), length(Outstate) / 2)
+test <- -train
+College.train <- College[train, ]
+College.test <- College[test, ]
+```
+
+
+```{r}
+fit <- regsubsets(Outstate ~ ., data = College.train, nvmax = 17, method = "forward")
+fit.summary <- summary(fit)
+fit.summary
+```
+
+
+(
+plot(fit.summary$cp, xlab = "Number of variables", ylab = "Cp", type = "l")
+min.cp <- min(fit.summary$cp)
+std.cp <- sd(fit.summary$cp)
+abline(h = min.cp + 0.2 * std.cp, col = "red", lty = 2)
+abline(h = min.cp - 0.2 * std.cp, col = "red", lty = 2)
+
+
+which.max(fit.summary$adjr2)
+which.min (fit.summary$cp )
+which.min (fit.summary$bic )
+)
+
+
+```{r}
+test.mat=model.matrix(Outstate~.,data=College.test)
+
+val.errors =rep(NA, 17)
+for(i in 1:17){
+  coefi=coef(fit, id=i)
+  pred=test.mat[, names(coefi)]%*% coefi
+  val.errors[i] = mean(( College.test$Outstate - pred)^2)
+}  
+
+val.errors
+```
+
+
+```{r}
+which.min (val.errors)
+```
+
+According to the result of cross validation, the model with 16 variables has the lowest validation test set error.
+
+```{r}
+coeffs <- coef(fit, id = 16)
+coeffs
+```
+
+
+
+###(b). Fit a GAM on the training data, using out-of-state tuition as the response and the features selected in the previous step as the predictors. Plot the results, and explain your findings.
+
+```{r}
+library(gam)
+fit2 <- gam(Outstate ~ Private + s(Room.Board, df = 2) + s(PhD, df = 2) + s(perc.alumni, df = 2) + s(Expend, df = 5) + s(Grad.Rate, df = 2), data=College.train)
+par(mfrow = c(2, 3))
+plot(fit2, se = T, col = "blue")
+```
+
+```{r}
+preds <- predict(fit2, College.test)
+err <- mean((College.test$Outstate - preds)^2)
+err
+
+```
+
+```{r}
+tss <- mean((College.test$Outstate - mean(College.test$Outstate))^2)
+rss <- 1 - err / tss
+rss
+```
+
+There is a test $R^2$ of 0.77 using GAM with 6 predictors.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

@@ -1,0 +1,44 @@
+You should be familiar with the following definitions and concepts (recognize them, give examples, apply them where appropriate):
+
+    Basic concepts of statistical learning: Prediction and Inference, accuracy and interpretability, regression and classification, supervised and unsupervised learning
+    Simple and multiple linear regression
+    Interaction terms
+    Dummy variables
+    Residuals
+    F-statistic, R-squared
+    Significance of estimated regression coefficients
+    Simple and multiple logistic regression
+    K-nearest neighbor prediction and classification
+    Confusion matrix
+    Neural nets, hidden layers, weights
+    ROC curve, area under curve
+    Training sets and test sets Cross validation
+    Leave-one-out cross-validation
+
+You should be able to do the following:
+
+    Recognize regression and classification problems
+    Recognize unsupervised and supervised learning situations
+    Show how to include dummy variables and interaction terms in a regression model
+    Give interpretation of R output for linear regression
+    Give interpretation of diagnostic plots for linear regression (residuals vs. fits)
+    Compare two regression models based on R output
+    Give interpretation of R output for logistic regression
+    Give interpretation of R output for neural networks
+    Compare logistic regression models or neural network models based on R output
+    Give interpretation of ROC curve
+    Give interpretation of R output for cross-validation
+
+ 
+
+The following topics will not be on the exam:
+
+    Fitting regression models or linear discriminant models by hand
+    Computing K-nearest neighbor predictions and classifications
+    Computing points an a ROC curve by hand
+    Writing R code, checking R syntax for correctness
+    Leverage, hat-matrix
+    Linear discriminant analysis
+    Quadratic discriminant analysis
+    Back propagation
+    Kappa statistic

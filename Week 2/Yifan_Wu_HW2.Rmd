@@ -1,0 +1,644 @@
+---
+title: "Yifan_Wu_HW2.Rmd"
+author: "Yifan Wu"
+date: "February 3, 2018"
+output:
+  html_document: default
+  word_document: default
+---
+
+#3.7.4
+
+##(a). 
+
+```{r}
+true_beta_0 = 8
+true_beta_1 = 3.5
+
+x<-rnorm(50, 0, 5)
+y <- true_beta_1 * x + true_beta_0 + rnorm(50,0,5)
+
+df <- data.frame(X = x,Y = y)
+plot(df$X, df$Y, xlab="X", ylab="Y")
+
+fit <- lm(Y ~ X , df)
+summary(fit)
+
+fit2 <- lm(Y ~ X + I(X^2) + I(X^3) , df)
+summary(fit2)
+
+```
+
+
+The residual for the cubic regression model will be smaller than that of the simple linear regression. Since the higher the degree of fitted polynomial, the more likely it is to overfit the data. For a regression line that the highest degree is 3 instead of 1, it will wiggle more to accomodate as many data point as possible by minimizing RSS. 
+
+From the above simulation we can see that, the residual for the cubic polynomial regression is smaller than that of the simple linear model.  
+
+
+##(b). 
+
+By using test, we assume the null hypothesis that the $\beta_{i}$ vectors is a zero vector: the response is independent with all the predictors. Since the true relationship between x and y is linear. The $x^2$ and $x^3$ will unsignificant in terms of predicting y. So the p-value for $x^2$ and $x^3$ will be very big, far exceeds any reasonable significant level. From our simulated data we can see that, the p-value for $x^2$ and $x^3$ is very big. 
+But when only look at the p-value for the model, it is hard to tell which model is a better fit because they both are significant (p-value < 0.05).
+
+##(c). 
+
+
+```{r}
+
+true_beta_0 = 8
+true_beta_1 = 4
+true_beta_2 = 4
+
+set.seed(1000)
+x<-rnorm(50, 0, 5)
+y <- true_beta_2 * x^2 + true_beta_1 * x + true_beta_0 + rnorm(50,0,10)
+
+df <- data.frame(X = x,Y = y)
+plot(df$X, df$Y, xlab="X", ylab="Y")
+
+fit <- lm(Y ~ X , df)
+summary(fit)
+
+fit2 <- lm(Y ~ X + I(X^2) + I(X^3) , df)
+summary(fit2)
+
+```
+
+For RSS, the higher the degree of the fitted polynomial is, the lower the RSS will be. The cubic model will have a lower RSS than the simple linear regression model. This is because the higher the degree is, the more wiggly the fitted line is so it can show more detail trend in the data when minimizing the RSS. 
+
+
+##(d). 
+
+Between using simple linear regression and cubic polynomial regression, it is not enough information to say which one can do better than the other one because the true relaitionship between response and the predictor is unknown.
+
+
+Case 1: when the true relationship is quadratic: 
+
+
+```{r}
+
+true_beta_0 = 8
+true_beta_1 = 3.5
+true_beta_2 = 4
+
+set.seed(1001)
+x<-rnorm(50, 0, 5)
+y <- true_beta_2 * x^2 + true_beta_1 * x + true_beta_0 + rnorm(50,0,10)
+
+df <- data.frame(X = x,Y = y)
+plot(df$X, df$Y, xlab="X", ylab="Y")
+
+fit <- lm(Y ~ X , df)
+summary(fit)
+
+fit2 <- lm(Y ~ X + I(X^2) + I(X^3) , df)
+summary(fit2)
+
+```
+
+We can see that if the true relationship between x and y is non-linear(in our simulated case, it is quadratic), the simple linear regression tells us that although the $x$ term is significant, there still more to be discovered since the residual is huge. When we are fitting a cubic polynomial, the term $x$ and $x^2$ is significant and the term $x^3$ is not and the residual is small at the mean time. So we know that the true relaitionship is duadratic. The p-value for the whole model is smaller in the cubic regression model.  
+
+
+Case 2: when the true relationship is cubic:
+
+
+```{r}
+
+true_beta_0 = 8
+true_beta_1 = 5
+true_beta_2 = 5
+true_beta_3 = 5
+
+x<-rnorm(100, 0, 5)
+y <- true_beta_3 * x^3 + true_beta_2 * x^2 + true_beta_1 * x + true_beta_0 + rnorm(50,0,10)
+
+df <- data.frame(X = x,Y = y)
+plot(df$X, df$Y, xlab="X", ylab="Y")
+
+fit <- lm(Y ~ X , df)
+summary(fit)
+
+fit2 <- lm(Y ~ X + I(X^2) + I(X^3) , df)
+summary(fit2)
+
+```
+
+We can see that when the true relationship is cubic, the simple linear regresson is doing badly because although we know tha the term $x$ is significant, the residual is very large. When we are fitting a cubic polynomial to the data, all terms are significant and the residual is small, we know that the true relationship is roughly cubic. The p-value for the whole model is the same. 
+
+
+Case 3: When the true relationship is more complex than cubic (i.e. 4th power, 5th power...): 
+
+```{r}
+
+true_beta_0 = 8
+true_beta_1 = 5
+true_beta_2 = 5
+true_beta_3 = 5
+true_beta_4 = 5
+
+x<-rnorm(100, 0, 5)
+y <- true_beta_4 * x^4 + true_beta_3 * x^3 + true_beta_2 * x^2 + true_beta_1 * x + true_beta_0 + rnorm(50,0,10)
+
+df <- data.frame(X = x,Y = y)
+plot(df$X, df$Y, xlab="X", ylab="Y")
+
+fit <- lm(Y ~ X , df)
+summary(fit)
+
+fit2 <- lm(Y ~ X + I(X^2) + I(X^3) , df)
+summary(fit2)
+
+```
+
+When the true relationship is more complex than cubic, the linear model and cubic model has the same behavior, their terms are all significant but their residual are large. We know that we should keep adding more power term to the model. One thing to be noticed is that, the residual for the cubic polynomial is smaller than that of the linear model, so we know that the cubic model is a better fit for the data. The p-value for the whole model is smaller in the cubic regression model. 
+
+
+Conclusion: 
+
+When using hypothesis test, the cubic regressoin can always gives us more information about the true relationship between the response and the predictors. But when only look at the p-value for the entire model, it is hard to tell which model is a better fit because they both are significant (p-value < 0.05) and sometime at the same valye and sometime one is bigger than the other.
+
+
+
+#3.7.9
+
+##(a). Produce a scatterplot matrix which includes all of the variables in the data set. 
+
+```{r}
+library(ISLR)
+dim(Auto)
+pairs(Auto)
+```
+
+
+##(b). 
+
+```{r}
+df2 <- subset(Auto, select = -c(name))
+round(cor(df2),3)
+```
+
+##(c).
+
+```{r}
+mul_lr <- lm(mpg~.,df2)
+summary(mul_lr)
+```
+
+###(i).
+
+There is a linear relationship between the response and the predictors because the p-value for the entire model is smaller than 0.05. 
+
+
+###(ii).
+
+The p-value for "displacement", "weight", "year", and "origin" are all statisticall significant. These are all strong evidence of linear dependence. As a result, there is a relationship between the response and "displacement", "weight", "year", and "origin". 
+
+
+###(iii).
+
+The coefficient for "year" is 0.75, this means that "year" and "mpg" is positively correlated. For every unit increase in "year", mpg will increase by 0.75 unit.
+
+
+
+#3.7.12
+
+##(a). 
+
+First we let
+
+$$
+\frac{\sum_{i=1}^{n} x_{i}y_{i}}{\sum_{i^{'}=1}^{n} y_{i^{'}}^2} = \frac{\sum_{i=1}^{n} y_{i}x_{i}}{\sum_{i^{'}=1}^{n} x_{i^{'}}^2} 
+$$
+
+Because we can cancel out the numerator, that leaves us:
+
+$$
+\sum_{i=1}^{n} y_{i}^2 = \sum_{i=1}^{n} x_{i}^2
+$$
+
+When $\sum_{i=1}^{n} y_{i}^2 = \sum_{i=1}^{n} x_{i}^2$,  the coefficient estimate for the regression of X onto Y the same as the coefficient estimate for the regression of Y onto X.
+
+
+##(b). 
+
+```{r}
+true_beta_1 = 5
+
+set.seed(0204)
+x<-rnorm(100, 50, 10)
+y <- true_beta_1 * x + rnorm(100,0,5)
+
+df3 <- data.frame(X = x,Y = y)
+plot(df3$X, df3$Y, xlab="X", ylab="Y")
+
+fit3 <- lm(Y ~ X , df3)
+summary(fit3)
+
+fit4 <- lm(X ~ Y , df3)
+summary(fit4)
+
+```
+
+From the above simulation, we can see that the coefficient for the regression of X on to Y(0.20) is different from the coefficient for the regression of Y onto X(4.98). 
+
+
+##(c). 
+
+Below is the simulated data:
+
+```{r}
+
+true_beta_1 = 1
+
+x<-rnorm(100, 50, 30)
+y <- true_beta_1 * x + rnorm(100,0,5)   
+
+df4 <- data.frame(X = sort(x),Y = sort(y))
+plot(df4$X, df4$Y, xlab="X", ylab="Y")
+
+fit5 <- lm(Y ~ X , df4)
+summary(fit5)
+
+fit6 <- lm(X ~ Y , df3)
+summary(fit6)
+
+``` 
+
+#3.7.13
+
+##(a). 
+
+```{r}
+set.seed(1002)
+x <- rnorm(100, 0, 1)
+
+```
+
+
+##(b). 
+
+```{r}
+set.seed(1003)
+eps <- rnorm(100, 0, 0.25)
+
+```
+
+
+##(c). 
+
+```{r}
+true_beta_0 = -1
+true_beta_1 = 0.5
+
+y <- true_beta_1 * x + true_beta_0 + eps
+length(y)
+```
+
+The length of vector y is 100. $\beta_0 = -1$ and $\beta_1 = 0.5$.
+
+
+##(d). 
+
+```{r}
+df5 <- data.frame(X = x,Y = y)
+plot(df5$X, df5$Y, xlab="X", ylab="Y")
+```
+
+
+We can see from the scatter plot that there is a clear positive linear relationship between x and y. 
+
+##(e). 
+
+```{r}
+fit8 <- lm(Y ~ X , df5)
+summary(fit8)
+
+```
+
+We can see that the model is a good fit because the p-value for the whole model is smaller than 0.05 and so is the p-value of coefficient of x and the intercept.
+
+
+True $\beta_{0} = -1$, fitted $\beta_{0} = -1.01$;
+
+True $\beta_{1} = 0.5$, fitted $\beta_{1} = 0.51$. 
+
+The fitted coefficients are both very close to the truth.
+
+##(f). 
+
+```{r}
+plot(df5$X, df5$Y, xlab="X", ylab="Y")
+abline(fit8, col="red",lwd=2) # regression line (y~x)
+legend("topleft", legend = "Simple Linear Regression Line", col="red",lty=1:2, cex=0.8,lwd=2)
+```
+
+
+
+##(g).
+
+
+```{r}
+fit9 <- lm(Y ~ X + I(X^2) , df5)
+summary(fit9)
+```
+
+The p-value for the qudratic term is 0.266, which is bigger than any reasonable significance level. So there is not evidence saying that the quadratic term does not improves the model fit.
+
+
+##(h).
+
+```{r}
+set.seed(1005)
+x <- rnorm(100, 0, 1)
+eps2 <- rnorm(100, 0, 0.05)
+
+true_beta_0 = -1
+true_beta_1 = 0.5
+
+y <- true_beta_1 * x + true_beta_0 + eps2
+length(y)
+
+df6 <- data.frame(X = x,Y = y)
+plot(df6$X, df6$Y, xlab="X", ylab="Y")
+
+fit10 <- lm(Y ~ X , df6)
+summary(fit10)
+
+#plot(df6$X, df6$Y, xlab="X", ylab="Y")
+abline(fit10, col="red",lwd=2) # regression line (y~x)
+legend("topleft", legend = "Simple Linear Regression Line", col="red",lty=1:2, cex=0.8,lwd=2)
+
+fit11 <- lm(Y ~ X + I(X^2) , df6)
+summary(fit11)
+
+
+```
+
+We can see that if we decrease the noise level, the data point will be less scattered and the linear trend becomes more obvious. The estimated $\beta_{0} = -0.99$ and $\beta_{1} = 0.50$ they are both very close to the truth and even closer compare to the original more noisy simulation. When we try to fit the data using a quadratic model, the $X^2$ term is not significant because the p-value is too big. 
+
+
+##(i).
+
+
+```{r}
+set.seed(1005)
+x <- rnorm(100, 0, 1)
+eps3 <- rnorm(100, 0, 0.8)
+
+true_beta_0 = -1
+true_beta_1 = 0.5
+
+y <- true_beta_1 * x + true_beta_0 + eps3
+length(y)
+
+df7 <- data.frame(X = x,Y = y)
+plot(df7$X, df7$Y, xlab="X", ylab="Y")
+
+fit12 <- lm(Y ~ X , df7)
+summary(fit12)
+
+#plot(df7$X, df7$Y, xlab="X", ylab="Y")
+abline(fit10, col="red",lwd=2) # regression line (y~x)
+legend("topleft", legend = "Simple Linear Regression Line", col="red",lty=1:2, cex=0.8,lwd=2)
+
+fit13 <- lm(Y ~ X + I(X^2) , df7)
+summary(fit13)
+
+
+```
+
+We can see that if we increase the noise level, the data point will be more scattered and the linear trend becomes less obvious. The estimated $\beta_{0} = -0.87$ and $\beta_{1} = 0.50$ they are both very close to the truth but deviate more from the truth compare to the original less noisy simulation. When we try to fit the data using a quadratic model, the $X^2$ term is not significant because the p-value is too big. When increase the noisy level, although the p-value is still smaller than 0.05, the p-value is bigger than the previous less noisy one. 
+
+##(j).
+
+```{r}
+round(confint(fit8, '(Intercept)', level=0.95),2)
+round(confint(fit8, 'X', level=0.95),2)
+```
+
+CI for original data set: 
+
+$\beta_{0} = [-1.06 , -0.96]$
+
+$\beta_{1} = [0.46,   0.57]$
+
+
+```{r}
+round(confint(fit10, '(Intercept)', level=0.95),2)
+round(confint(fit10, 'X', level=0.95),2)
+```
+
+
+CI for less noisy data set: 
+
+$\beta_{0} = [-1,  -0.98]$
+
+$\beta_{1} = [ 0.49 ,  0.51]$
+
+
+
+```{r}
+round(confint(fit12, '(Intercept)', level=0.95),2)
+round(confint(fit12, 'X', level=0.95),2)
+```
+
+
+CI for more noisy data set: 
+
+$\beta_{0} = [-1.04  , -0.7]$
+
+$\beta_{1} = [ 0.35 ,  0.64]$
+
+
+
+From the CI for $\beta_{0}$ and $\beta_{1}$ we can conclude that the more noisy the data is, the wider the CIs for their coefficients are.
+
+
+
+#3.7.15
+
+##(a). 
+
+We find out the p-value for the regression model for all predictors with "Crime" and find out the ones that exceeds 0.05:
+
+```{r}
+library(MASS)
+library(reshape2)
+library(dplyr)
+library(broom)
+library(reshape)
+
+df_b = Boston
+melt_boston <- melt((df_b), id.vars = "crim")
+
+lr_bostn=melt_boston %>% group_by(variable) %>% do(tidy(lm(crim ~ value, data=.)))
+lr_bostn
+
+lr_boston_not_sig = subset(lr_bostn, lr_bostn$p.value > 0.05) 
+lr_boston_not_sig
+```
+
+We can see from the above result that, except for the predictor "chas", every other variables in the data frame "Boston" has statistically significant association the response. 
+
+```{r}
+for(i in names(Boston[-1])){
+  plot( Boston[[i]], Boston$crim, xlab=i, ylab="Crime")
+  abline(lm(Boston$crim ~  Boston[[i]], data = Boston), col="red",lwd=2) # regression line (y~x)
+  legend("topleft", legend = "Simple Linear Regression Line", col="red",lty=1:2, cex=0.8,lwd=2)
+ }
+
+```
+
+The same result could be interpreted from the plot too. Due the fact that the variable "chas" is a binary variable, it makes sense that a linear model will do badly on fitting it with a continuous variable such as "Crime". For the fitting for every other variable with "Crime", we can see that the red line is a good fit for the data. 
+
+
+##(b). 
+
+```{r}
+
+mul_lr_boston <- lm(crim~.,Boston)
+summary(mul_lr_boston)
+
+```
+
+
+Unlike the result from the seperate simple linear regressoin, only a few variables is significant when we are fitting the data using multiple linear regression. The significant variables are: "zn", "dis", "rad", "black", and "medv". So for the above predictors, we can reject the null hypothesis $H_{0}:\ \beta_{j} = 0$.
+
+
+##(c). 
+
+```{r}
+coef_univar = lr_bostn$estimate[lr_bostn$term != "(Intercept)"]
+coef_multivar = mul_lr_boston$coefficients[-1]
+coef = data.frame(coef_univar, coef_multivar)
+
+plot(coef_univar, coef_multivar)
+with(coef, text(coef_multivar~coef_univar, labels = names(Boston[-1]), pos = 2))
+plot(coef_univar, coef_multivar)
+
+
+```
+
+From the above result we can see that most of the coefficients lies around 0 with small difference within each predictor except for "nox", which apprears to be an outlier whose coefficients varies greatly. Next we investigate "Nox" on its own to find out what's happening:
+
+
+```{r}
+#Univeriate linear regression for nox:
+summary(lm(Boston$crim ~ Boston$nox, Boston))
+plot( Boston$nox, Boston$crim, xlab="nox", ylab="Crime")
+abline(lm(Boston$crim ~ Boston$nox, Boston), col="red",lwd=2) # regression line (y~x)
+legend("topleft", legend = "Simple Linear Regression Line for Nox", col="red",lty=1:2, cex=0.8,lwd=2)
+
+#Multivariate linear regressoin:
+summary(mul_lr_boston)
+
+```
+
+For multivariable linear regressoin: the coefficient for nox(-10.31) is not significant(0.53). 
+
+For univeriate linear regresson: the coefficient for nox(31.25) is very significant(2e-16).
+
+This suggestes that when we are taking all variables into account: while holding all other variables constant, "crim" and "nox" is negatively correlated with each other. Holding all other variables constant, increase in one unit in "nox" will cause decrease in "crim" for 10 units. The inconsistant result between univariate regression and multivariate regresion means that "nox" is interacting with other variables in the data. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

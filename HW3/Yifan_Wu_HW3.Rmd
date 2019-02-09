@@ -1,0 +1,266 @@
+---
+title: "Yifan_Wu"
+author: "Yifan Wu"
+date: "February 11, 2018"
+output: html_document
+---
+
+#3.7.3
+
+##(a). Which answer is correct, and why? 
+
+
+The linear regression model is of the following form: 
+
+$$
+Salary = 50 +20GPA+0.07IQ+35Gender+0.01GPA*IQ-10GPA*Gender
+$$
+
+For males: 
+
+$$
+Salary = 50 +20GPA+0.07IQ+0.01GPA*IQ
+$$
+
+For Females: 
+$$
+Salary = 85 + 10 GPA + 0.07IQ + 0.01GPA*IQ
+$$
+
+Assume male earn more than female, that is:
+
+$$
+50 + 20GPA > 85 + 10 GPA \Rightarrow GPA > 3.5 
+$$
+
+This is a high GPA, so (iii) is correct. 
+
+##(b). 
+
+We plug in $IQ=110$ and $GPA=4$, we get $Salary = 137.1$. 
+
+##(c). 
+
+False, There is not enough evidence to say that there is no intercation between GPA and IQ. We need to test the hypothesis that $\beta_{4} = 0$ and get the p-value and the F statistics to determine if the coefficient is significant. 
+
+
+#3.7.9. 
+
+##(e). 
+
+```{r}
+library(ISLR)
+
+cor(Auto[1:8])
+```
+
+We can see from the correlation table: 
+
+cylinders ~ displacement, 
+weight ~ displacement, 
+
+are strongly correlated. So to examine the intercation between the variables, we choose these two pairs of variables to perform multiple liear regression. 
+
+```{r}
+fit<- lm(mpg ~ cylinders * displacement + weight * displacement, data = Auto[, 1:8])
+summary(fit)
+
+```
+
+From the p-values, we can see that the interaction between displacement and weight is statistically signifcant. The interactiion between cylinders and displacement is not.
+
+##(f). 
+
+```{r}
+par(mfrow = c(2, 2))
+plot(log(Auto$horsepower), Auto$mpg)
+plot(sqrt(Auto$horsepower), Auto$mpg)
+plot((Auto$horsepower)^2, Auto$mpg)
+
+lm1 <- lm(mpg ~ log(weight),data = Auto) 
+lm2 <- lm(mpg ~ sqrt(weight),data = Auto) 
+lm3 <- lm(mpg ~ (weight^2),data = Auto) 
+
+summary(lm1)
+summary(lm2)
+summary(lm3)
+```
+
+We could see that $log(weight)$,$\sqrt{weight}$,$weight^2$ are all statistically signi???cant due to the fact that their p-value are all smaller enough. The model for $log(weight)$ has the highest multiple R-squared so it is the bet fit amongst three transformation of the variable.
+
+
+#3.7.10
+
+##(a). 
+
+```{r}
+data(Carseats) 
+head(Carseats)
+lm4 <- lm(Sales ~ Price + Urban + US, data = Carseats) 
+summary(lm4)
+```
+
+
+##(b). 
+
+Quantitative: Price, 
+
+Qualitative: Urban, US. 
+
+For intercept, this is ageneral baselien where if all the variables are zero, we coule see that the Sales is at around 13.04. The coefficient of the "Price" is, holding all other predictors fixed, the average effect of a price increase of 1 dollar is a decrease of 54.46 units in sales. The coefficient of the "Urban" means that, holding all other predictors fixed, on average the unit sales in urban lo cation are 21.9161508 units less than in rural location. The coefficient of the "US" variable means that, holding  all other predictors fixed, on average the unit sales in a US store are 1200.57 units more than in a non US store.
+
+
+##(c). 
+
+
+$$
+Sales = 13.043469 + (-0.054459)\times Price + (-0.021916)\times Urban + (1.200573)\times US + \epsilon
+$$
+
+(Urban = 1 wen the store is located in urban locaiton and 0 otherwise; US = 1 if store is located in the US and 0 otherwise.)
+
+
+##(d). 
+
+The p-value for Price and US are both small enough to be statistically significant. So for these two variables we can reject the null hypothesis $H_{0}:\beta_{j}=0$.
+
+
+
+##(e). 
+
+```{r}
+lm5 <- lm(Sales ~ Price + US, data = Carseats) 
+summary(lm5)
+```
+
+##(f). 
+
+Model in (a) and (e) have the same multiple R-squared, which is 0.2393. Both of them are quite low so in terms of approaching to 1 so these model are not very good predictions. 
+
+##(g). 
+
+
+```{r}
+confint(lm5)
+```
+
+##(h)
+
+```{r}
+par(mfrow = c(2, 2)) 
+plot(lm5)
+```
+
+From the standardized residuals versus leverage plot we can see that there are values that are outside of the boundary of 2 and -2. So there exist outliers in the data. We can also see that there is a point that stays in on the very right side of the leverage scale, this means that our data also has a leverage point. 
+
+#3.7.14 
+
+##(a). 
+
+```{r}
+set.seed(1)
+x1=runif (100)
+x2=0.5*x1+rnorm (100)/10 
+y=2+2*x1+0.3*x2+rnorm (100)
+```
+
+The form of the linear model is:
+
+$$
+Y = 2 +2X_{1} +0.3X_{2} + \epsilon
+$$
+
+The regression coefficients are 2, 2 and 0.3. 
+
+##(b). 
+
+```{r}
+cor(x1, x2)
+plot(x1, x2)
+```
+
+The correlation coefficient is 0.8351212 and also from the scatter plot we can see that there is a linear trend between $X_{1}$ and $X_{2}$. So $X_{1}$ and $X_{2}$ are highly correlated. 
+
+##(c). 
+
+```{r}
+fit1 <- lm(y ~ x1 + x2)
+summary(fit1)
+```
+
+In regression model: 
+
+$\beta_{0} = 2.1305$
+
+$\beta_{1} = 1.4396$
+
+$\beta_{2} = 1.0097$
+
+True value: 
+
+$\beta_{0} = 2$
+
+$\beta_{1} = 2$
+
+$\beta_{2} = 0.3$
+
+We can reject the null hypothesis: $H_{0}: \beta_{1} = 0$ because the p-value for $\beta_{1}$ is very small: 0.0487. 
+Only $\beta_{0}$ in the regression model is close to the real $\beta_{0}$ while other deviate greatly. We cannot say the same for $\beta_{2}$ because its p-value is 0.3754, which far exceed any reasonable significance level. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

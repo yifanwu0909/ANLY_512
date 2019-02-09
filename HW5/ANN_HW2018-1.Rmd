@@ -1,0 +1,82 @@
+---
+title: "nnet HW"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+##1. FeedFoward (5 points)
+
+Below is the output from nnet after we fit a model. Let's assume we used a tanh() activation function throughout. Let $x_i, i = 1, 2, \dots$ be the input variables and let $h_1, h_2, \dots$ be the output from the hidden layer. 
+
+
+```{r, eval =FALSE}
+a 2-2-1 network with 9 weights
+options were - linear output units 
+ b->h1 i1->h1 i2->h1 
+  1.2   4.2   -0.5 
+ b->h2 i1->h2 i2->h2 
+-30      20      -40 
+  b->o  h1->o  h2->o 
+    5      -8   1.5 
+```
+
+(a) Draw a diagram of this neural network architecture. Label all the edges with the corresponding weights. 
+
+(b) Provide an expression for the output value of the first hidden unit as a function of the values of the input features. _This should have the form $h_1 = f(x_1, x_2, \dots)$ for a suitable explicit function $f$._
+
+(c) Provide an expression for the value at the output node as a function of the values at the hidden units. _This should have the form $z  = g(h_1, h_2, \dots)$ for a suitable explicit function $g$._
+
+(d) Provide an expression for the value at the output node as a function of the input values. _This should have the form $z = F(x_1, x_2, \dots)$ for a suitable explicit function $F$._
+
+##2. Multiple Solutions (5)
+
+Below is the nnet putput for a feed-forward ANN that  is similar to the network used in the videos.
+
+
+```{r, eval =FALSE}
+a 2-2-1 network with 9 weights
+options were - linear output units 
+ b->h1 i1->h1 i2->h1 
+  0      5      0   
+ b->h2 i1->h2 i2->h2 
+  0      0      7 
+  b->o  h1->o  h2->o 
+  -5      4      6 
+```
+
+There are several other sets of weights that lead to networks with the exact same output behavior. Find __all__ these sets of weights, with explanation. 
+
+
+
+##3. ANNs and Multiple Linear Regression  (7 points)
+
+This problem uses the Advertising data. All data should be used for training. _When using nnet() in this problem, leave __decay__ and __maxit__ at their default values._
+
+```{r}
+library(nnet)
+set.seed(1234)
+Advertising <- read.csv("Advertising.csv")
+```
+
+A linear regression model Sales ~ TV + Radio + Newspaper can be fitted using either R's lm() function or with a neural net without hidden layer and with linear output. Carry this out and demonstrate that the models are the same (same coefficients, same predictions). 
+
+(a) Demonstrate that the lm() and the nnet() approach essentially give the same model. Also show that the sum of squared errors (SSE) is the same for both models.
+
+(b) Use the `scale()` method to create a new dataframe __Advert2__  from the Advertising data. Use 'head()' to inspect this dataframe and describe what has changed. Then replace the changed __Sales__ column with the original one, since we do not want to change the responses.   
+
+_When rescaleing the feature space, one  calculates the mean and variance of each feature and converts each measurement into a feature-specific z score.  This is generally useful if the different features are measured on entirely different units or scales._
+
+(c) Fit a linear model with one of the methods of (a) to the scaled data. Explain why this linear model will have the exact same responses as the linear model from (a). 
+
+##4. MNIST Revisited (8 Points)
+
+We'll use the MNIST image classification data, available as __mnist_all.RData__ that were used in class during the last two weeks. We want to distinguish between 4 and 7. Extract the relevant training data and place them in a data frame. 
+
+(a) Pick two features (variables) that have large variances and low correlation. Fit a logistic regression model with these two features. Evaluate the model with the AUC score.
+
+(b) Create a neural net with one unit in the hidden layer. Train the neural net with the same two features as the previous part and evaluate the model with AUC. Compare to the results from (a) and explain.
+
+(c) With the same two features, train three different neural nets, each time using more units in the hidden layer. How do the results improve, using the AUC? Is there evidence of overfitting?
+
+

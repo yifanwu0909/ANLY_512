@@ -1,0 +1,460 @@
+---
+title: "Yifan_Wu_HW4"
+author: "Yifan Wu"
+date: "February 19, 2018"
+output: html_document
+---
+
+
+#4.7.6
+
+##(a).
+
+The logistic function for this problem shoule be in the following format: 
+
+$$
+ P = \frac{e^{-6+0.05X_{1}+X_{2}}}{1+e^{-6+0.05X_{1}+X_{2}}}
+$$
+
+We plug in $X_{1} = 40$ and $X_{2} = 3.5$ we get:
+
+$$
+ P = \frac{e^{-6+0.05\times 40 + 3.5}}{1+e^{-6+0.05\times 40 + 3.5}} = 0.3775
+$$
+
+##(b). 
+
+The statement is equivalent to: 
+
+
+
+$\frac{e^{-6+0.05X_{1}+3.5}}{1+e^{-6+0.05X_{1}+3.5}} = 0.5 \Rightarrow X_{1} = 50$
+
+
+
+#4.7.13
+
+First we split the dataset into training set and test set:
+
+```{r}
+library(ISLR)
+library(MASS)
+library(caret)
+
+attach(Boston)
+
+Boston$resp <- 0
+Boston$resp[crim > median(crim)] <- 1
+Boston$resp <-factor(Boston$resp)
+table(Boston$resp)
+
+Boston <- Boston[-drop(1)]
+
+inTrain <- createDataPartition(y = Boston$resp, p = 0.75, list = FALSE)
+
+train <- Boston[inTrain,]
+test <- Boston[-inTrain,]
+
+```
+```{r}
+Cor <- cor(train[,-14])
+Cor
+```
+
+
+```{r}
+
+findCorrelation(Cor, cutoff = 0.80)
+```
+
+We remove the column "tax" from our training data as well as test data because it is highly correlated with "rad". 
+
+```{r}
+train_cor <- train[,-drop(c(9))]
+test_cor <- test[,-drop(c(9))]
+```
+
+Fitting the logistic regression model:
+
+```{r}
+logit <- train(resp~., data=train, 
+               method='glm', family=binomial(link='logit'),
+               preProcess=c('scale', 'center'))
+summary(logit)
+```
+
+Test our model on testing set:
+
+```{r}
+confusionMatrix(predict(logit, test[,-14]), test$resp)
+```
+
+The accuracy is 95%, which is pretty high. 
+
+
+#Logistic regression homework Problem 1
+
+```{r}
+load("mnist_all.RData")
+
+train_df = data.frame(train$x)
+test_df = data.frame(test$x)
+
+train_df$class = train$y
+test_df$class = test$y
+
+table(train_df$class)
+```
+
+Pull out the images that is 0 and 1. 
+
+```{r}
+df_01 <- subset(train_df , class == 0 | class == 1)
+table(df_01$class)
+```
+
+Do the same with test dataset:
+
+```{r}
+test_01 = subset(test_df , class == 0 | class == 1)
+table(test_01$class)
+```
+
+Get the column with the least number of 0 in it. It is pixel X213. 
+
+```{r}
+
+#colSums(df_01 != 0)
+df_count = data.frame(colSums(df_01 != 0))
+colnames(df_count) = 'count'
+which.max(df_count$count)
+```
+
+
+Logistic regression: 
+
+```{r}
+glm=glm(class ~ X213, data=df_01, family=binomial) 
+summary(glm)
+
+test_01_X213 = data.frame(X213 = test_01$X213) 
+
+glm.probs = predict(glm, newdata = test_01_X213)
+glm.pred=rep(0,length(glm.probs)) 
+glm.pred[glm.probs >.5] = 1 
+
+
+ 
+confusionMatrix(glm.pred, test_01$class)
+```
+
+
+Summary of the model: 
+
+```{r}
+summary(glm)
+```
+
+
+Here the inercept term is: 1.05 and the slope term for X213 is -0.006. 
+
+The logistic regression equation is: 
+
+$$
+p(X) = \frac{e^{1.05 -0.006 X213}}{1 + e^{1.05 -0.006 X213}}
+$$
+
+```{r}
+library(pROC)
+roc(test_01$class ~ glm.pred,plot = TRUE, grid = TRUE, show.thres = TRUE)
+
+```
+
+The fraction of true positives if the fraction of false positives is 0.1(specificity = 0.9) is about 0.2. The model is doing slightly better than pure guessing and the same could be derived from the result of the confusion matrix. 
+
+
+#Logistic regression homework Problem 2
+
+The correlation of X500 and X601 is very small: 0.01. 
+
+```{r}
+cor(df_01$X500, df_01$X601)
+```
+
+Fit logistic regression to the data:
+
+```{r}
+glm2=glm(class ~ X500 + X601, data=df_01, family=binomial) 
+summary(glm2)
+
+test_01_low_cor = data.frame(X500 = test_01$X500,X601 = test_01$X601) 
+
+glm2.probs = predict(glm2, newdata = test_01_low_cor)
+glm2.pred=rep(0,length(glm2.probs)) 
+glm2.pred[glm2.probs >.5] = 1 
+
+
+ 
+confusionMatrix(glm2.pred, test_01$class)
+```
+
+```{r}
+library(pROC)
+prob=predict(glm2,type=c("response"))
+df_01$prob=prob
+roc(class ~ prob, plot = TRUE, grid = TRUE, data = df_01)
+ 
+```
+
+From the ROC curve we can see that our model goes above the y = x line so our data is applicable and does better than pure chance. 
+
+In the training set: 
+
+```{r}
+# Create new column filled with default colour
+df_01$Colour="black"
+# Set new column values to appropriate colours
+df_01$Colour[df_01$class == 0]="blue"
+df_01$Colour[df_01$class == 1]="red"
+plot(df_01$X500, df_01$X601, col=df_01$Colour)
+```
+
+In the trianing dataset, most of the pictture with a white X500 pixel are 1 but not all of it. It might affect the performance of the regression fitting because the patter is not obvious. We need to increase the dimentionality of the predictors to get a more precice prediction result. 
+
+
+
+#Logistic regression homework Problem 3
+
+First we find out the variance for all of the columns in the trianing dataframe and sout out the columns that has the highest variance. 
+
+```{r}
+var = sort(apply(df_01[,c(-785,-786, -787)], 2, var),decreasing = TRUE)
+var_df = data.frame(var)
+cols = row.names(head(var_df, 10))
+```
+
+Then fit logistic regression with those 10 variables as predictors: 
+
+```{r}
+glm3=glm(class ~ X407 + X435 + X379 + X463 + X462 + X352 + X351 + X380 + X490 + X434 , data=df_01, family=binomial) 
+summary(glm3)
+
+test_01_var = data.frame(X407 = test_01$X407,
+                         X435 = test_01$X435,
+                         X379 = test_01$X379,
+                         X463 = test_01$X463,
+                         X462 = test_01$X462,
+                         X352 = test_01$X352,
+                         X351 = test_01$X351,
+                         X380 = test_01$X380,
+                         X490 = test_01$X490,
+                         X434 = test_01$X434) 
+
+glm3.probs = predict(glm3, newdata = test_01_var)
+glm3.pred=rep(0,length(glm3.probs)) 
+glm3.pred[glm3.probs >.5] = 1 
+
+
+ 
+confusionMatrix(glm3.pred, test_01$class)
+
+```
+
+```{r}
+roc(test_01$class ~ glm3.pred,plot = TRUE, grid = TRUE, show.thres = TRUE)
+```
+
+As we can see from the ROC curve, our model is doing very well and it almost reaches to 1 for both bounds. So the model that uses 10 variables that has most variance does extremely well in differentiating 0 from 1. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

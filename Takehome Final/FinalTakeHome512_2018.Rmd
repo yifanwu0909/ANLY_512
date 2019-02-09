@@ -1,0 +1,681 @@
+---
+title: 'Analytics 512: Take Home Final Exam'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+200 points in __nine__ problems. This is the take-home portion of the exam. You may use your notes, your books, all material on the course website, and your computer or any computer in the departmental computer lab. You may also use official documentation for `R`, built-in or on https://cran.r-project.org/, but no other material on the Internet. Provide proper attribution for all such sources. You may not use any human help, except whatever help is provided by me. 
+
+Your solution should consist of two files: An .Rmd file that loads all data and all packages, makes all plots, and contains all comments and explanation, and an .html or .pdf file that is produced by the .Rmd file. Return your solutions in Canvas by Thursday, 5/10/18, 11:59PM 
+
+
+
+Problems A.1-A.6 use the __Ozone__ data that are available in the `mlbench` package. 
+Problems B.1-B.3 use the `make.eight` function; see the code below.
+
+
+# Part A: Ozone Data
+
+__Preparation:__ Load the __Ozone__ data. Read the instructions. Delete the variables V2 and V3 (day of month and day of week). Change the names of the remaining variables to
+
+`r c("month", "dailymax", "pressure", "windlax","humlax","tsand","telmonte","invlax","pressgrad","invbasetemplax","vislax" )
+`. 
+
+```{r}
+rm(list = setdiff(ls(), lsf.str()))
+library(mlbench)
+data(Ozone)
+Ozone <- subset(Ozone, select = -c(V2, V3))
+names = c("month", "dailymax", "pressure", "windlax","humlax", "tsand","telmonte","invlax","pressgrad","invbasetemplax","vislax")
+colnames(Ozone) <- names
+```
+
+The target (response) variable is __dailymax__, the daily ozone maximum.
+
+### A.1 [10] 
+
+Make two more data set, one where all days with any missing observations are omitted and one where only those days with missing daily maximum are omitted. Are the days with missing data uniformly distributed over all twelve months? Explore this question with a chi-squared test. Explain your approach and summarize the conclusion.   
+
+First we use exploratory analysis to see if there is any trend of uniformity in the data. We can see that there is some shape to the bar plot, suggesting non-uniformity. 
+
+```{r}
+ozone.omitall <- na.omit(Ozone)
+ozone.omitmax <- Ozone[!is.na(Ozone$dailymax),]
+ozone.na = Ozone[rowSums(is.na(Ozone)) > 0,]
+days.na = ozone.na$month
+days.na
+barplot(table(days.na))
+```
+
+
+expected value of NAs in each month and the observed number of NAs in each month: 
+
+```{r}
+exp = length(days.na)/12
+exp
+obs = data.frame(table(days.na))$Freq
+obs
+```
+
+Carry out the Chi-square test to see if the data is uniformly distributed: 
+
+$H_{0}$: The day of missing value in a month is uniformly distributed.
+
+$H_{a}$: The day of missing value in a month is not uniformly distributed. 
+
+```{r}
+observation <- c(obs)
+res <- chisq.test(observation, p = rep(1/12,12))
+res
+```
+
+The p-value is really large so there is not enough evidence to suggest that the day with missing value in a month is not a uniform distribution. 
+
+
+Carry out the Chi-square test by hand:
+
+```{r}
+mytest = function(x){
+  return(sum((x-exp)^2)/exp)}
+
+# Try it out
+X2.observed = mytest(obs)
+print(X2.observed)
+```
+
+```{r}
+null <-rmultinom(1,163,rep(1,12))
+null <-as.vector(null)
+names(null) <-c("1","2","3","4","5","6","7","8","9","10","11","12")
+print(null)
+```
+
+
+```{r}
+N = 100000
+null <- replicate(N,mytest(rmultinom(1,163,rep(1,12))))
+
+hist(null, main = "Null distribution", sub = paste("p-value = ", round(mean(null > X2.observed),4)),prob=T)
+abline(v = X2.observed, col = 2, lwd = 2)
+```
+
+
+We can see that the P-value is very large, so there is not enough evidence to reject the null hypoithesis to say that it is not a uniform distribution. 
+
+
+
+### A.2 [30] 
+
+Fit trees to predict __dailymax__ from all variables except __month__, once from data with complete observations and once from data with complete daily maximum observations, but possibly missing data elsewhere. Find a short and convincing way to show that the two trees are the same.  
+
+```{r}
+library(ISLR)
+#set.seed(1)
+#train <- sample(1:nrow(ozone.omitall), 4*nrow(ozone.omitall)/5) 
+#O.train <- ozone.omitall[train, ]
+#O.test <- ozone.omitall[-train, ]
+library(tree)
+tree.complete <- tree(dailymax ~ . - month, data = ozone.omitall)
+summary(tree.complete)
+```
+
+```{r}
+plot(tree.complete)
+text(tree.complete, pretty = 0)
+```
+
+
+```{r}
+library(ISLR)
+#set.seed(1)
+#train <- sample(1:nrow(ozone.omitmax), 4*nrow(ozone.omitmax)/5) 
+#O.train.withna <- ozone.omitmax[train, ]
+#O.test.withna <- ozone.omitmax[-train, ]
+
+library(tree)
+tree.withna <- tree(dailymax ~ . - month, data = ozone.omitmax)
+summary(tree.withna)
+```
+
+
+```{r}
+plot(tree.withna)
+text(tree.withna, pretty = 0)
+```
+
+Besides the fact that the Residual mean deviance and the distribution of residuals are the same for two models are exactly the same, from the tree plot we can also see that the shape of the tree and the division threshold of each branch are all the same for tow models. Two models fited using the complete data and partially missing data are completly the same. 
+
+### A.3 [20] 
+
+The daily ozone maximum can be predicted from the month alone, using the mean. Find a way to assess the rms error of this prediction using 10-fold cross validation.
+
+Prepare the data for predicting the mean dailymax of the month using month:
+
+```{r}
+ozone.month = ozone.omitall[, 1:2]
+month.agg = aggregate(ozone.month$dailymax, list(ozone.month$month), mean)
+names(month.agg) <-c("month", "dailymax")
+month.agg$month = as.numeric(month.agg$month) 
+```
+
+We can see that there is a rough quadratic shape to the relationship between mean dailymax and month.
+
+```{r}
+plot(month.agg)
+```
+
+
+```{r}
+library(boot)
+cv.error=rep(0,5)
+for (i in 1:5){
+  glm.fit=glm(dailymax ~ poly(month, i), data=month.agg)
+  cv.error[i]=cv.glm(month.agg, glm.fit, K=10)$delta[1]
+}
+cv.error
+```
+
+We can see that a cubic polynomial is the best fit for predicting dailymax using month because its model has the smallest CV error(10.18257).
+
+```{r}
+glm.cubic=glm(dailymax ~ poly(month, 3), data=month.agg)
+summary(glm.cubic)
+```
+
+Delta in the result of 10-fold cross validation is the average mean-squared error that you obtain from doing 10-fold CV. RMS is the Root Mean Squared Error (RMSE), which is the square root of the obtained CV MSE.
+
+```{r}
+rms = sqrt(cv.glm(month.agg, glm.cubic, K=10)$delta[1])
+rms
+```
+
+The RMS for 10-fold cross-validation for a cubic model is approximatly 3.19. 
+
+### A.4 [30] 
+
+Predict the daily ozone maximum from all variables except month, using a linear model and only observations with complete measurements. Identify all significant variables.
+
+Assess the rms error using 10 fold CV.
+
+```{r}
+library(boot)
+linear.model=glm(dailymax ~ .- month, data = ozone.omitall)
+summary(linear.model)
+```
+
+As we can see from the result above, the sinificant variables are: humlax, tsand, telmonte, invlax.
+
+```{r}
+sqrt(cv.glm(ozone.omitall, linear.model, K=10)$delta[1])
+```
+
+The RMS is approximately 4.56. 
+
+
+### A.5 [20] 
+
+Use the LASSO for the linear model from the previous problem, once with standardization and once without. For each case, plot the coefficient trajectories as a function of the regularization parameter $\lambda$  and determine the last five variables that leave the model as $\lambda$ increases.
+
+In the case of standarization:
+
+```{r}
+x=model.matrix(dailymax ~ .-month, ozone.omitall)[,-1]
+y=ozone.omitall$dailymax
+x.sd = x
+for (j in 1:9){x.sd[,j] <- x.sd[,j]/sqrt(sum(x.sd[,j]^2))}
+
+library(glmnet)
+set.seed(0507)
+lasso.mod = glmnet(x.sd,y,alpha = 1)
+plot(lasso.mod, xvar = "lambda", xlim=range(-5:3.5))
+grid(col = 4)
+```
+
+```{r}
+#cv.lasso =cv.glmnet(x,y,alpha =1)
+#plot(cv.lasso)
+#bestlam =cv.lasso$lambda.min
+#bestlam
+#predict(lasso.mod, s=bestlam, type ="coefficients")
+lasso.mod$beta
+```
+
+
+We can see from the above matrix, after standardizatoin, the last 5 variables that leaves the model when $lambda$ increase is humlax, tsand, telmonte, invlax and vislax.
+
+
+In the case of __no__ standarization:
+
+```{r}
+set.seed(0507)
+lasso.mod2 = glmnet(x,y,alpha = 1, standardize = F)
+plot(lasso.mod2, xvar = "lambda", xlim=range(-1:7))
+grid(col = 4)
+```
+
+
+```{r}
+lasso.mod2$beta
+```
+
+
+We can see from the above matrix, after no standardizatoin, the last 5 variables that leaves the model when $lambda$ increase still: pressure, humlax, invlax, pressgrad, vislax. This is different from the case when we standarize the data first. 
+
+
+### A.6 [10]
+
+In problems 2, 4, 5 you have identified several sets of variables that are probably useful for predicting __dailymax__ (excluding month). Compare these sets. Which variables are in all or most models? Which variables appear only in a few models?   
+
+```{r}
+summary(tree.complete)
+```
+
+```{r}
+summary(linear.model)
+```
+
+
+In A.2, the variables included in our tree model are:  "telmonte", "tsand", "invlax", "pressgrad", "invbasetemplax", "vislax".
+In A.4, the variables included in our linear model are:  "telmonte", "tsand", "invlax", "humlax".
+In A.5, the last 5 variables leaving our lasso model are:  "telmonte", "tsand", "invlax", "humlax", "vislax".
+
+Across these three models,  "telmonte", "tsand", and "invlax" are in all of them;  "pressgrad", "invbasetemplax", "vislax", and "humlax" are only included in a some of them three models. 
+
+
+# Part B: Artificial Data
+
+__Preparation:__ Use the following function code. Familiarize yourself with its output. 
+
+Use the function to make two datasets with 2000 observations each, one for training, one for testing. Set the random seed to 2019 before doing this. 
+
+### B.1 [30] 
+
+
+```{r}
+make.eight = function(N, spread = .1, makeplot = T){
+  # Make N points:  N/2 points in horizontal figure 8
+  # N/4 points each inside the holes of the figure 8
+  # spread = noise parameter
+  # return data frame with coordinates x, y for each point 
+  # Classification variables in the data frame:
+  #    charlabel =   eight   or   left   or  right
+  #    label = 0 (for points on the figure 8) or = 1 (for points inside the holes)
+  # plot with marked points if makeplot = T
+  
+  # Try these examples:
+  # mydf <- make.eight(200)
+  # mydf <- make.eight(100,spread = .05)
+  # mydf <- make.eight(300,spread = .1, makeplot = F)
+  #set.seed(2019)
+  circ0 = runif(N/2)*2*pi
+  circ = matrix(c(cos(circ0)/(1 + sin(circ0)^2),rep(-.5,N/4),rep(.5,N/4),
+        cos(circ0)*sin(circ0)/(1 + sin(circ0)^2),rep(0,N/2)),ncol = 2)
+  x = circ + spread*matrix(rnorm(2*N),N,2)
+  y=rep(c(0,1),c(N/2,N/2))
+  if(makeplot){plot(x,col = c(rep(1,N/2),rep(2,N/4),rep(3,N/4)),pch=19, 
+        xlab = "x1", ylab = "x2")}
+  A = data.frame(x = x[,1], y = x[,2], label = as.factor(y), 
+        charlabel = c(rep("eight",N/2),rep("left",N/4), rep("right",N/4)))
+  return(A)
+}
+
+
+df = make.eight(1500,spread = .1, makeplot = T)
+
+```
+
+
+(a) Build a tree from the training set to predict the label from  x and y. Do not use the variable __charlabel__. Plot the tree, evaluate it on the training set and on the test set, and make confusion matrices.
+
+```{r}
+library(ISLR)
+set.seed(1)
+df.label = df[-4]
+train.sample <- sample(1:1500, 1100)
+train.label <- df.label[train.sample, ]
+test.label <- df.label[-train.sample, ]
+
+library(tree)
+tree.df <- tree(label ~ ., data = train.label)
+summary(tree.df)
+```
+
+```{r}
+plot(tree.df)
+text(tree.df, pretty = 0)
+```
+
+```{r}
+df.pred <- predict(tree.df, test.label, type = "class")
+table(df.pred, test.label$label) 
+mean(df.pred != test.label$label)
+```
+
+
+For unpruned tree:
+
+Misclassification error rate for training data: 0.06
+Misclassification error rate for test data: 0.08
+
+
+
+(b) This tree can obviously be pruned. Explain how one can tell and explain how many terminal nodes should be used for the pruned tree. Verify that the pruned tree gives the same predictions for the training and test data. Do not use CV to decide on the tree size.
+
+
+```{r}
+prune.tree = prune.misclass(tree.df, best = 7)
+plot(prune.tree)
+text(prune.tree, col = 3)
+```
+
+```{r}
+summary(prune.tree)
+```
+
+
+```{r}
+df.pred.prune <- predict(prune.tree, test.label, type = "class")
+table(df.pred.prune, test.label$label) 
+mean(df.pred.prune != test.label$label)
+```
+
+
+For pruned tree:
+
+Misclassification error rate for training data: 0.06
+Misclassification error rate for test data: 0.08. 
+
+
+They are the same with pruned tree.
+
+
+```{r}
+
+df = make.eight(1500,spread = .1, makeplot = T)
+abline(0.25,0)
+abline(-0.25,0)
+segments(-0.75,-0.25,-0.75,0.25)
+segments(-0.25,-0.25,-0.25,0.25)
+segments(0.75,-0.25,0.75,0.25)
+segments(0.25,-0.25,0.25,0.25)
+title("figure 1")
+```
+
+As we can see from the summary above, in the first tree we fit, the data is being partitioned into 13 segments. This is obviously redundant.  A more efficient tree could be pruned into 7 pertitions shown in Figure 1. The pruning/merging result are shown in Figure 2. The result would be completly the same compare to the result in unpruned tree. This is because that the redundant partitions will yield the same classification result within their own row so we might as well just join them together to achiever a more efficient tree.
+
+
+(c) Explain why pruning any tree for data such as these to fewer than six nodes will most likely result in substantially worse performance. Demonstrate this with an example. 
+
+For these patterns of data, we can see from Figure 2 that, pruning trees to fewer than 6 nodes will force data points that does not belong to the same class into one partition. The pruned tree below has 4 terminal nodes and has much higher test set error rate than unpruned tree. 
+
+```{r}
+bad.prune <- prune.misclass(tree.df, best = 3)
+summary(bad.prune)
+#text(bad.prune, pretty = 0)
+bad.prune.pred <- predict(bad.prune, test.label, type = "class")
+table(bad.prune.pred, test.label$label) 
+mean(bad.prune.pred != test.label$label)
+```
+
+### B.2 [30] 
+
+(a) Fit a boosted tree model, with interaction depth < 3 (all other parameters are your choice, **but with the constraint that ntrees * shrinkage < 200**). Do not use the variable __charlabel__. Show that the model is incapable of fitting the training data very well (i.e. near perfectly with prediction error < 1%). Explain this phenomenon. Show that such a model still seems to be overfitting the training data. _You should make the label veriable numeric first._
+
+```{r}
+library(gbm)
+set.seed (1)
+train.label$label = as.numeric(train.label$label) - 1
+
+set.seed(3)
+boost.label = gbm(label ~ ., data=train.label, distribution="gaussian", n.trees = 10000, interaction.depth = 2, shrinkage = 0.01)
+boost.train.pred = predict(boost.label, newdata = train.label,type = 'response', n.trees = 1000)
+boost.train.pred = ifelse(boost.train.pred > 0.5, 1, 0)
+table.train = table(boost.train.pred,train.label$label)
+table.train
+mean(boost.train.pred != train.label$label)
+```
+
+Error rate:
+
+```{r}
+boost.test.pred = predict(boost.label, newdata = test.label,type = 'response', n.trees = 100)
+boost.test.pred = ifelse(boost.test.pred > 0.5, 1, 0)
+table.label = table(boost.test.pred,test.label$label)
+table.label
+mean(boost.test.pred != test.label$label)
+```
+
+As we can see above, the training set miss classification rate is very high(5%) and the test set classification rate is even higher(20%). This is a sign of serious overfit. 
+
+
+(b) Fit a boosted tree model with sufficiently large interaction depth. Do not use the variable __charlabel__. Demonstrate that the training data now can be fitted almost perfectly. Decide whether the model from part (a) or the model from part (b) should be used for new data.
+
+```{r}
+set.seed(1)
+boost.label2 = gbm(label ~ ., data=train.label, distribution="gaussian", n.trees = 10000, interaction.depth = 49, shrinkage = 0.01)
+boost.train.pred2 = predict(boost.label2, newdata = train.label,type = 'response', n.trees = 1000)
+boost.train.pred2 = ifelse(boost.train.pred2 > 0.5, 1, 0)
+table(boost.train.pred,train.label$label)
+
+mean(boost.train.pred2 != train.label$label)
+```
+
+If we choose the intercation depth to be as large as possible(49), the training set error is almost perfect, around 1%. 
+
+```{r}
+boost.test.pred2 = predict(boost.label2, newdata = test.label,type = 'response', n.trees = 10000, shrinkage = 0.01)
+boost.test.pred2 = ifelse(boost.test.pred2 > 0.5, 1, 0)
+table(boost.test.pred2,test.label$label)
+
+mean(boost.test.pred2 != test.label$label)
+```
+
+As we can see from the above modeling result we can see that if we increase the interaction depth of the model, the result, both the training error and test error, are improved significantly. The model from part b should be used for new data because even though the second model shows some sign of overfitting the result is still far more superior than the first model. 
+
+
+
+### B.3 [20]
+
+Make $N = 1000$ figure eight data points with spread = 0.05 and delete the variable __label__. You may want to keep  __charlabel__. Set the random seed to 2019 before doing this.
+
+You'll apply clustering methods to this dataset. From looking at this data, one would expect (hope) that all the data in a point cloud inside one of the holes of the 8 will be in the same c luster. Find a way to determine if this is indeed the case. There are many ways to do this, including these possibilities: Make a scatterplot of the datapoints colored by cluster label, or plot the cluster labels against the row index, or make a two-way table of __charlabel__ and "membership" in each cluster, and so on. Choose an approach and explain why you expect it to work. 
+
+```{r}
+set.seed(2019)
+df2 = make.eight(1000, spread = 0.05, makeplot = F)
+df.char = df2[-3]
+plot(df.char$x,df.char$y, col = df.char$charlabel)
+```
+
+From the plot above we can see that the 8 shape is its own cluster, and the cloud in each hole of the 8 are their own cluster.
+
+(a) Apply hierarchical clustering, with both single linkage and complete linkage. Cut the resulting trees at $k = 10$ and $k = 20$. In each case, evaluate the clustering results with the approach that you have selected to determine whether the two interior point clouds are captured by the clustering algorithm. When applicable, write down which cluster indices correspond to the left and right point clouds.
+
+For single linkage:
+
+```{r}
+h.single = hclust(dist(df.char[1:2]), method = 'single')
+h.single.10 = cutree(h.single, 10)
+h.single.20 = cutree(h.single, 20)
+plot(df.char$x, df.char$y, col = h.single.10)
+title("k = 10")
+```
+
+```{r}
+plot(df.char$x, df.char$y, col = h.single.20)
+title("k = 20")
+```
+
+
+Now we try complete linkage:
+
+```{r}
+h.complete = hclust(dist(df.char[1:2]), method = 'complete')
+h.complete.10 = cutree(h.complete, 10)
+h.complete.20 = cutree(h.complete, 20)
+plot(df.char$x, df.char$y, col = h.complete.10)
+title("k = 10")
+```
+
+```{r}
+plot(df.char$x, df.char$y, col = h.complete.20)
+title("k = 20")
+```
+
+
+For both K = 10 and K = 20, we can see that the clustering result is unsuccessful. The tree fails to recognise the circular pattern. The interior points in this 4 trees are being assigned into clusters that also contains part of the 8 shape. 
+
+
+(b) If single linkage clustering is applied, then one expects that cutting the tree to three clusters will identify the three clusters (figure eight, left cloud, right cloud) perfectly. But this will likely only happen if the data isn't too noisy. We can control the data noise with the spread parameter of the `make.eight()` function. Determine for which spread value this happens, with evidence as in part (a). Set the random seed to 2019 before each run.
+
+We use cross valisation to determine which spread is the threshold that hierarchical classification starts to correctly identify three clusters correctly. We make a sequence of different levels of spread and calculate the miss-clssification errors and find out which spread level does the first non-zero mass-classification error corresponds to. The tricky part is that, unlike logistic regression, in which case is supervised and the result classification can matches the original classification label so we can calculate the missclassification rate fairly easily, in the case of hierarchical classification, the classification result might not corresponds to the original classification lable, even though it identifies the clusters correctly. For instance, if the original data is lables as (1,1,1,2,2,3), the hierarchical classificsation result might generate an classification result as (2,2,2,1,1,3), which is 100% correctness for the three clusters but hard for us to calculate miss-classification error(100% missclassified labeling in this case!). In the case of hierarchical classification, the order of the labels is not the priority but rather it only has to correctly identify 3 clusters containing the right data points. 
+
+To overcome this difficulty, each time an hierarchical classification is run, we permute all possible orders of labels to calculate the miss-classification errors, the one with the lowest error within all possible permutations of the labels is the classification labeling result that corresponds to the "truth". In the case of three lebels, we have 6 permutations of different order of the labels. 
+
+```{r}
+require(combinat)
+charlabel = c("eight","left","right")
+perm = permn(charlabel)
+perm
+```
+
+
+For instance, if the classification result is:
+
+( __"left"__, __"right"__, __"right"__, __"eight"__, __"eight"__) 
+
+and the truth is: 
+
+("eight", "left" ,"left","right","right"). 
+
+We can see that the clustering result successfully recognize the clustering pattern for all data points(pattern of "one, two, two") but fails to give the correct labeling order to calculate a 0% error rate, instead the error rate will be 100%.
+
+To solve this issue, we calculate all 6 permutation of the labeling order and calculate a miss-classificastion error for each. After that, we choose the smallest one. The possible outcomes are:
+
+
+(cluster 1(one),     cluster 2(two),      cluster 3(two)     ):
+
+("eight",    "left","left",    "right","right")   (error rate 0%)
+
+("eight",    __"right"__, __"right"__,    __"left"__ , __"left"__)   (error rate 80%)
+
+( __"right"__,    __"eight"__, __"eight"__ ,   __"left"__ , __"left"__)   (error rate 100%)
+
+( __"right"__,    "left", "left",    __"eight"__, __"eight"__)   (error rate 60%)
+
+( __"left"__,    __"right"__, __"right"__,    __"eight"__, __"eight"__)   (error rate 100%)
+
+( __"left"__,    __"eight"__, __"eight"__,    "right","right").    (error rate 60%)
+
+
+ 
+As we can see, the first one out of all permutations mathces the labeling order of the truth so it will generate a 0% error rate while all other will have much higher error rate up to 100% because they got the order of the labeling wrong. In this example, we leave the error of the first permutation(0%) as the CV error of the current ith choice of spread. Do the same thing for all other choices of spread and we have an array of hierarchical cv error for each choice of spread. After that we choose the first non-zero error and find out which spread is that error corresponds to. The algorithm is carried out as the following:
+
+
+```{r}
+sequence = seq(0.01, 0.5, 0.005)
+cv.errors =c()
+
+for(i in sequence){
+  set.seed(2019)
+  df.temp = make.eight(1500, spread = i, makeplot = F)
+  set.seed(2019)
+  h.single.temp = hclust(dist(df.temp[1:2]), method = 'single')
+  h.single.3.temp = cutree(h.single.temp, 3) #get the array of result with 3 clusters
+  
+  require(combinat)
+  charlabel = c("eight","left","right")
+  perm = permn(charlabel)
+  perm.error = rep(NA, 6)
+  for (j in 1:6){
+    h.single.3.temp.new = h.single.3.temp
+    h.single.3.temp.new = replace(h.single.3.temp.new,1 == h.single.3.temp,perm[[j]][1])
+    h.single.3.temp.new = replace(h.single.3.temp.new,2 == h.single.3.temp,perm[[j]][2])
+    h.single.3.temp.new = replace(h.single.3.temp.new,3 == h.single.3.temp,perm[[j]][3])
+    perm.error[j] = mean(h.single.3.temp.new != as.character(df.temp$charlabel))
+  }
+  cv.errors = c(cv.errors,min(perm.error))
+
+}
+cv.errors
+
+```
+
+
+From the array of CV error we can spot the first non-zero error rate is 0.0006666667. Next we find the corresponding indices and the spread:
+
+```{r}
+#Find the smallest non-zero CV error. 
+min.error = min(cv.errors[cv.errors > 0])
+print(paste("The smallest non-zero CV error(threshold) is:",min.error))
+
+#Find which index in cross validation that we find the smallest non-zero CV error.  
+index.of.min = which(cv.errors %in% min.error)
+print(paste("The index in cross validation that we find the smallest non-zero CV error is:",index.of.min))
+
+#Find out the corresponding spread value in the sequence of spread. 
+print(paste("The largest spread value that the hierarchical clustering method can still perform well is:", sequence[index.of.min]))
+
+```
+
+
+As a conclusion, if we choose a spread level of no larger than 0.045, the hierarchical classification can identify 3 clusters very precisely. Next we visulize the result. The algorithm is completely the same, only part we makes changes is that knowing the threshold spread occurs fairly early in the array, we plot the first 32 classificsation result from the loop:
+
+
+```{r}
+par(mfrow=c(3,4))
+sequence = seq(0.01, 0.5, 0.005)
+cv.errors =c()
+
+for(i in sequence){
+  set.seed(2019)
+  df.temp = make.eight(1500, spread = i, makeplot = F)
+  set.seed(2019)
+  h.single.temp = hclust(dist(df.temp[1:2]), method = 'single')
+  h.single.3.temp = cutree(h.single.temp, 3) #get the array of result with 3 clusters
+  
+  require(combinat)
+  charlabel = c("eight","left","right")
+  perm = permn(charlabel)
+  perm.error = rep(NA, 6)
+  for (j in 1:6){
+    h.single.3.temp.new = h.single.3.temp
+    h.single.3.temp.new = replace(h.single.3.temp.new,1 == h.single.3.temp,perm[[j]][1])
+    h.single.3.temp.new = replace(h.single.3.temp.new,2 == h.single.3.temp,perm[[j]][2])
+    h.single.3.temp.new = replace(h.single.3.temp.new,3 == h.single.3.temp,perm[[j]][3])
+    perm.error[j] = mean(h.single.3.temp.new != as.character(df.temp$charlabel))
+  }
+  cv.errors = c(cv.errors,min(perm.error))
+  
+  
+  ###############algorithm is the same up to this point###############
+  
+  #Plot the classificaiton result of the data with spread choise smaller than 0.125:
+  if(i<=0.125){
+    plot(df.temp$x, df.temp$y, col = h.single.3.temp)
+    title(paste("spread = ",i))
+  }
+
+}
+```
+
+
+We can see that after spread = 0.045, the classification result start to turn really bad. Any result before spread = 0.045, the classification result can clearly recognise the 8 shape and the two point clouds in the holes of the 8. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

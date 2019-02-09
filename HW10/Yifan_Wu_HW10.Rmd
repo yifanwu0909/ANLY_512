@@ -1,0 +1,325 @@
+---
+title: "HW 10"
+author: "Yifan Wu"
+date: "May 1, 2018"
+output: html_document
+---
+
+##9.7.3
+
+###(a).
+
+```{r}
+rm(list = setdiff(ls(), lsf.str()))
+
+x1 = c(3, 2, 4, 1, 2, 4, 4)
+x2 = c(4, 2, 4, 4, 1, 3, 1)
+colors = c("red", "red", "red", "red", "blue", "blue", "blue")
+plot(x1, x2, col = colors, xlim = c(0, 5), ylim = c(0, 5))
+```
+
+
+###(b).
+
+The optimal hyperplane should be between the line $(2,1)$ $(4,3)$ lies on, and the line $(2,2)$,$(4,4)$ lies on. That is the line parallel to those two lines with equal distance to those two lines. 
+
+The equation for the optimal hyperplane is: $y = x - \frac{1}{2}$.
+
+```{r}
+plot(x1, x2, col = colors, xlim = c(0, 5), ylim = c(0, 5))
+abline(-0.5, 1)
+```
+
+###(c). 
+
+Classify to Red if $y???x+0.5>0$, and classify to Blue otherwise
+
+
+###(d). 
+
+
+```{r}
+plot(x1, x2, col = colors, xlim = c(0, 5), ylim = c(0, 5))
+abline(-0.5, 1)
+abline(-1, 1, lty = 2)
+abline(0, 1, lty = 2)
+```
+
+###(e). 
+
+The support vectors are: $(2,1)$, $(4,3)$, $(2,2)$,$(4,4)$.
+
+
+###(f). 
+
+
+The seventh point is not a support vector. 
+
+###(g). 
+
+$y???x+0.2>0$ is not a optimal hyperplane:
+
+```{r}
+plot(x1, x2, col = colors, xlim = c(0, 5), ylim = c(0, 5))
+abline(-0.2, 1)
+```
+
+###(h).
+
+```{r}
+plot(x1, x2, col = colors, xlim = c(0, 5), ylim = c(0, 5))
+points(c(3), c(1), col = c("red"))
+```
+
+
+## 9.7 #4
+
+```{r}
+library(e1071)
+set.seed(1)
+x <- rnorm(100)
+y <- 3 * x^2 + 1 + rnorm(100)
+class <- sample(100, 50)
+y[class] <- y[class] + 4
+y[-class] <- y[-class] - 4
+plot(x[class], y[class], col = "red", xlab = "X", ylab = "Y", ylim = c(-6, 30))
+points(x[-class], y[-class], col = "blue")
+```
+
+
+```{r}
+z <- rep(-1, 100)
+z[class] <- 1
+data <- data.frame(x = x, y = y, z = as.factor(z))
+train <- sample(100, 50)
+data.train <- data[train, ]
+data.test <- data[-train, ]
+```
+
+
+For Support Vector Classifier: 
+
+```{r}
+svm.linear <- svm(z ~ ., data = data.train, kernel = "linear", cost = 1)
+plot(svm.linear, data.train)
+```
+
+```{r}
+table.linear.train = table(predict = predict(svm.linear, data.train), truth = data.train$z) 
+table.linear.train
+(table.linear.train[2] + table.linear.train[3])/sum(table.linear.train)
+```
+
+```{r}
+table.linear.test = table(predict = predict(svm.linear, data.test), truth = data.test$z) 
+table.linear.test
+(table.linear.test[2] + table.linear.test[3])/sum(table.linear.test)
+```
+
+
+Next, we fit a support vector machine with a polynomial kernel.
+
+```{r}
+svm.poly <- svm(z ~ ., data = data.train, kernel = "polynomial", cost = 1)
+plot(svm.poly, data.train)
+```
+
+
+```{r}
+table.poly.train = table(predict = predict(svm.poly, data.train), truth = data.train$z)
+table.poly.train
+(table.poly.train[2] + table.poly.train[3])/sum(table.poly.train)
+```
+
+```{r}
+table.poly.test = table(predict = predict(svm.poly, data.test), truth = data.test$z) 
+table.poly.test
+(table.poly.test[2] + table.poly.test[3])/sum(table.poly.test)
+```
+
+Next we use radial kernel:
+
+```{r}
+svm.radial <- svm(z ~ ., data = data.train, kernel = "radial", cost = 1)
+plot(svm.radial, data.train)
+```
+
+
+```{r}
+table.radial.train = table(predict = predict(svm.radial, data.train), truth = data.train$z)
+table.radial.train
+(table.radial.train[2] + table.radial.train[3])/sum(table.radial.train)
+```
+
+```{r}
+table.radial.test = table(predict = predict(svm.radial, data.test), truth = data.test$z) 
+table.radial.test
+(table.radial.test[2] + table.radial.test[3])/sum(table.radial.test)
+```
+
+In the case of Linear SV clasisfier, the training and test error: 0.08 and 0.02. 
+In the case of polynomial kernal SVM, the training and test error: 0.28 and 0.36.
+In the case of radial kernal SVM, the training and test error: 0.02 and 0.
+
+From the above result we can see that radial kernal SVM outperforms Linear SV Classifier. 
+
+##10.7 #2a-d
+
+###(a).
+
+```{r}
+d = as.dist(matrix(c(0, 0.3, 0.4, 0.7, 
+                     0.3, 0, 0.5, 0.8,
+                     0.4, 0.5, 0.0, 0.45,
+                     0.7, 0.8, 0.45, 0.0), nrow = 4))
+plot(hclust(d, method = "complete"))
+```
+
+
+###(b). 
+
+```{r}
+plot(hclust(d, method = "single"))
+```
+
+
+###(c). 
+
+In this case, we have clusters (1,2) and (3,4).
+
+
+###(d). 
+
+
+In this case, we have clusters ((1,2),3) and (4).
+
+
+
+
+##10.7 #11
+
+###(a).
+
+```{r}
+genes <- read.csv(url("http://www-bcf.usc.edu/~gareth/ISL/Ch10Ex11.csv"), header = FALSE)
+```
+
+
+###(b). 
+
+
+```{r}
+hc.complete <- hclust(as.dist(1 - cor(genes)), method = "complete")
+plot(hc.complete)
+```
+
+```{r}
+hc.single <- hclust(as.dist(1 - cor(genes)), method = "single")
+plot(hc.single)
+```
+
+
+```{r}
+hc.average <- hclust(as.dist(1 - cor(genes)), method = "average")
+plot(hc.average)
+```
+
+
+From the clustering result above we can see that we get two cluste from complete and single linkage, and three clusters from average linkage. 
+
+
+###(c). 
+
+If we want to know the genes that differs the most, 
+
+
+```{r}
+pr.out <- prcomp(t(genes),scale =TRUE)#PCA on the transpose of data matrix while normalize the data. We want to examine the variance of genes, so we have to transpose the dataset. 
+
+dim(pr.out$rotation)#The dimension of rotation matrix, which is the loading of each principle components on each observation of data. 
+head(pr.out$rotation)
+```
+
+
+
+```{r}
+total.load <- apply(pr.out$rotation, 1, sum) #Sum over all columns for all 1000 genes
+index <- order(abs(total.load), decreasing = TRUE)#Ordering to find the largest absolute total loading
+index[1:10]
+```
+
+The 10 most variable genes are shown above. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

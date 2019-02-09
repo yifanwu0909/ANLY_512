@@ -1,0 +1,95 @@
+---
+title: "3/27/in-class"
+author: "Yifan Wu"
+date: "March 27, 2018"
+output: html_document
+---
+
+```{r}
+require("tree")
+require("gbm")
+require("randomForest")
+require("ISLR")
+```
+
+```{r}
+rss <- function(list){
+  result = sum((list - mean(list))^2)
+return(result)
+}
+
+```
+
+
+
+```{r}
+x = seq(0,10,by = .01)
+y0 = cos(x/4 + x^2/5)*x^2/20 + x 
+y = y0 + rnorm(length(x))
+mydf = data.frame(x=x,y=y)
+rss0 = 1000*var(y)
+plot(x,y)
+```
+
+```{r}
+best_split <- function(x, y){
+  
+  rss <- function(a){
+    result = sum((a - mean(a))^2)
+    return(result)
+  }
+
+  df = data.frame(x, y)
+  df = df[order(x),]
+  sum_rss1 = 1000000
+  for (i in 1:length(x)){
+    list1 = df$y[c(1:i)]
+    list2 = df$y[-c(1:i)]
+    sum_rss2 = rss(list1) + rss(list2)
+  
+    if (sum_rss2 < sum_rss1) {
+      sum_rss1 = sum_rss2
+      iter = i
+    }
+  }
+  return(df$x[iter])
+}
+
+```
+
+
+```{r}
+best_split(x,y)
+
+```
+
+```{r}
+l = c(1,2,3,4,5,6,7,8,9,0)
+l[-c(1:2)]
+```
+
+```{r}
+df = data.frame(x, y)
+rss(df$x)
+df
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

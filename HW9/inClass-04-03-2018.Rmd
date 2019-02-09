@@ -1,0 +1,307 @@
+---
+title: "inClass-04-04-2017"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, echo = F}
+require("ISLR")
+require("MASS")
+require("e1071")
+```
+
+
+# Ensemble Methods
+
+Continuing from where we ran out of time last week.
+
+We'll explore datasets from the UCI repository. Each group will tackle a different one of these datasets and will present their findings to rest of the class. 
+
+* Dataset A. Echocardiogram - https://archive.ics.uci.edu/ml/datasets/Echocardiogram
+* Dataset B. Dermatology - https://archive.ics.uci.edu/ml/datasets/Dermatology
+* Dataset C. Heart Disease - https://archive.ics.uci.edu/ml/datasets/Heart+Disease
+* Dataset D. Gamma Rays - https://archive.ics.uci.edu/ml/datasets/MAGIC+Gamma+Telescope
+* Dataset E. Airfoil - https://archive.ics.uci.edu/ml/datasets/Airfoil+Self-Noise
+* Dataset F. Dermatology - https://archive.ics.uci.edu/ml/datasets/Dermatology
+* Dataset G. Spam - https://archive.ics.uci.edu/ml/datasets/Spambase
+* Dataset H. Yeast - https://archive.ics.uci.edu/ml/datasets/Yeast
+
+1. Familiarize yourself with the dataset descriptions. What are the features of the dataset and what are you trying to predict? 
+
+
+2. Pull down the data from the UCI site and load into an R dataframe in whatever way your team sees as best. This step is entirely one of "data wrangling and cleaning" - a topic that we've avoided so far in class, but is an inevitable part of data science. This step probably won't require web-scraping, but it will take a little effort. 
+
+
+```{r}
+s <- read.csv("spambase.data", sep=",", header=F, check.names = TRUE)
+names = c("word_freq_make","word_freq_address","word_freq_all","word_freq_3d","word_freq_our","word_freq_over","word_freq_remove","word_freq_internet","word_freq_order","word_freq_mail","word_freq_receive","word_freq_will","word_freq_people","word_freq_report","word_freq_addresses","word_freq_free","word_freq_business","word_freq_email","word_freq_you","word_freq_credit","word_freq_your","word_freq_font","word_freq_000","word_freq_money","word_freq_hp","word_freq_hpl","word_freq_george","word_freq_650","word_freq_lab","word_freq_labs","word_freq_telnet","word_freq_857","word_freq_data","word_freq_415","word_freq_85","word_freq_technology","word_freq_1999","word_freq_parts","word_freq_pm","word_freq_direct","word_freq_cs","word_freq_meeting","word_freq_original","word_freq_project","word_freq_re","word_freq_edu","word_freq_table","word_freq_conference","char_freq_;","char_freq_(","char_freq_[","char_freq_!","char_freq_$","char_freq_hash","capital_run_length_average","capital_run_length_longest","capital_run_length_total","labels")
+colnames(s) <- names
+
+s = data.frame(s)
+```
+
+3. Now that you have a dataframe, do some Exploratory Data Analysis. Come up with some visualizations that help you understand the features and their relationship to the target variable. 
+
+```{r}
+s.0 = subset(s, labels == 0)
+s.1 = subset(s, labels == 1)
+```
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(s.0[, 1:54])
+boxplot(s.1[, 1:54])
+```
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(s.0[, 55:57])
+boxplot(s.1[, 55:57])
+```
+
+```{r}
+boxplot(s.1[, 1:54])
+```
+
+
+4. Split your data into a training set and a test set.
+
+```{r}
+set.seed(11)
+sample.train = sample(1:dim(s)[1], dim(s)[1] / 2) #Sample all rows, only keep half of them
+sample.test = - sample.train
+
+#training set for logistic regression, need labels to be integer(0 or 1).
+s.logistic.train <-  s[sample.train, ]
+s.logistic.test <- s[sample.test, ]
+
+#training set for bagging and rf regression, need labels to be factors.
+s$labels <- as.factor(s$labels)
+s.tree.train <- s[sample.train, ]
+s.tree.test <- s[sample.test, ]
+```
+
+
+
+5. Fit your data with a "baseline" model (either linear regression or logistic regression). Which variables seem to be important? 
+
+```{r}
+logistic.model <- glm(labels ~., data = s.logistic.train, family = binomial)
+summary(logistic.model)
+```
+
+```{r}
+prob.logistic <- predict(logistic.model, s.logistic.test, type='response') 
+logistic.pred = rep(0, length(s.logistic.test$labels))
+logistic.pred[prob.logistic >.5] = 1
+table.logistic = table(logistic.pred, s.logistic.test$labels)
+table.logistic
+```
+
+```{r}
+(table.logistic[2] + table.logistic[3 ])/sum(table.logistic)
+```
+
+6. Fit your data with a decision tree. Visualize the tree and comment on the results when the model is applied to the test set.
+
+```{r}
+library(tree)
+#s.tree.train = data.frame(s.tree.train)
+tree.model = tree(labels~., s.tree.train)
+summary(tree.model)
+```
+
+
+```{r}
+tree.pred <- predict(tree.model, s.tree.test, type = "class")
+table.tree = table(tree.pred, s.tree.test$labels)
+table.tree
+```
+
+```{r}
+(table.tree[2] + table.tree[3 ])/sum(table.tree)
+```
+
+7. Fit your data with bagging (with decision trees). Compare with results from part 5.
+
+```{r}
+library(randomForest)
+set.seed (1)
+bag.model = randomForest(labels ~., data = s.tree.train, mtry=57, importance = TRUE)
+bag.model
+```
+
+
+```{r}
+bag.pred = predict(bag.model, newdata = s.tree.test, type = "class")
+tabel.bagging = table(bag.pred, s.tree.test$labels)
+tabel.bagging
+```
+
+```{r}
+(tabel.bagging[2] + tabel.bagging[3])/sum(tabel.bagging)
+```
+
+8. If your dataset has many features, fit your data with a random forest model. Comment on the results when the model is applied to the test set.
+
+```{r}
+library(randomForest)
+set.seed (1)
+rf.model = randomForest(labels ~., data = s.tree.train, mtry = 8, importance = TRUE)
+rf.model
+```
+
+
+```{r}
+rf.pred = predict(rf.model, newdata = s.tree.test, type = "class")
+tabel.rf = table(rf.pred, s.tree.test$labels)
+tabel.rf
+```
+
+```{r}
+(tabel.rf[2] + tabel.rf[3])/sum(tabel.rf)
+```
+
+9. Fit your data with a boosted tree model. Comment on the results when the model is applied to the test set.
+
+
+```{r}
+library(gbm)
+set.seed(1)
+
+boost.model = gbm(labels ~., data = s.logistic.train, distribution="bernoulli", n.trees = 5000, interaction.depth = 4)
+summary(boost.model)
+
+```
+
+```{r}
+v = s.tree.test$labels
+table(v)
+```
+
+```{r}
+boost.reg = predict(boost.model, newdata = s.logistic.test, n.trees = 5000, type = "response")
+
+boost.pred = rep(0, length(s.tree.test$labels))
+boost.pred[boost.reg > quantile(boost.reg, 0.5)] = 1
+
+tabel.boosting = table(boost.pred, s.tree.test$labels)
+tabel.boosting
+```
+
+```{r}
+(tabel.boosting[2] + tabel.boosting[3])/sum(tabel.boosting)
+```
+
+
+#* Describe your dataset and what you were trying to predict. Describe some of the features of the dataset. Try to describe (or speculate) why this problem and this dataset is important. 
+
+The dataset we are trying to predict is the spam dataset from the website "https://archive.ics.uci.edu/ml/datasets/Spambase". Nowadays, email is one of the most important ways to receive formal information. While a lot of people are trying to flood our inbox with advertiesments and scams, it is crutial that our computer are able to tell the difference between the good email and the spam. Our project today serves the purpose of spam detection by using state-of-the-art machine learning methods. We then compare analyze these results.
+
+In our dataset, for every row of the data represent the content in one email, the features for those rows are: 
+
+percentage of words in the e-mail that match 48 key words; 
+
+percentage of characters in the e-mail that match 6 characters;
+
+average length of uninterrupted sequences of capital letters;
+
+length of longest uninterrupted sequence of capital letters;
+
+total number of capital letters in the e-mail;
+
+The binary labels denotes whether the e-mail was considered spam (1) or not (0), i.e. unsolicited commercial e-mail.
+
+Our goal is to by identifying some key words and key patterns, we are able to build a model that predict the result of whether it is a spam. 
+
+#* Provide some exploratory visualizations and descriptions. Don't just provide pages of un-annotated plots, but be more thoughtful about what story you're trying to tell.
+
+
+```{r}
+s.0 = subset(s, labels == 0)
+s.1 = subset(s, labels == 1)
+```
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(s.0[, 1:54])
+boxplot(s.1[, 1:54])
+```
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(s.0[, 55:57])
+boxplot(s.1[, 55:57])
+```
+
+
+From the result of the above exploratory analysis we can see that by plotting the distibution of all features by normal email and spam, we can see that the two plots have difference in distribution of feature frequency. Thus, we can almost be cartain that there is a way to select the good email from the bad because they clearly distinguishable from the data. Now we need build a model around to test our thought. 
+
+#* Describe some of the prediction methods you tried on this problem. It's OK if you didn't have success in each case - just describe what you tried and why you think it didn't work. Especially, for methods that did work well, describe and interpret the results.
+
+
+I used logistic regression, bagging, Random Forest and boosting for this data. The classification error rate are: 
+
+logistic regression: 0.09
+
+Decision Tree: 0.1
+
+bagging: 0.07
+
+Random Forest: 0.05
+
+boosting: 0.13.
+
+For logistic regression, for our dataset, Random Forest yields a best result because when using Random Forest, we decorrelate the data to avoid overfitting, so the training set error should be roughly the same with the test error. 
+
+
+#* Provide some overall conclusions and summary about the problem and the process. Which techniques were successful? Which features seem important? What were some interesting things you learned about the data?
+
+
+Overall conclusion: Random Forest out-performs all the other modeling methods due to its inernal mechanism of decorrelating the data. The process is to seperate the data into training set and test. Develop the model using training set and test it on testing set! Try out every mathod and compare the testing error result! 
+
+From the result from Logistic regression and Boosting we can see that "!", "$", "remove", "hp" and "free" are some key indicators for detecting spam. Also, this data is very clean so we do not need to pre-clean the data. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

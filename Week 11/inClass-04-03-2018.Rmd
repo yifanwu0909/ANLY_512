@@ -1,0 +1,148 @@
+---
+title: "inClass-04-04-2017"
+output: pdf_document
+---
+
+```{r, echo = F}
+require("ISLR")
+require("MASS")
+require("e1071")
+```
+
+
+# Ensemble Methods
+
+Continuing from where we ran out of time last week.
+
+We'll explore datasets from the UCI repository. Each group will tackle a different one of these datasets and will present their findings to rest of the class. 
+
+* Dataset A. Echocardiogram - https://archive.ics.uci.edu/ml/datasets/Echocardiogram
+* Dataset B. Dermatology - https://archive.ics.uci.edu/ml/datasets/Dermatology
+* Dataset C. Heart Disease - https://archive.ics.uci.edu/ml/datasets/Heart+Disease
+* Dataset D. Gamma Rays - https://archive.ics.uci.edu/ml/datasets/MAGIC+Gamma+Telescope
+* Dataset E. Airfoil - https://archive.ics.uci.edu/ml/datasets/Airfoil+Self-Noise
+* Dataset F. Dermatology - https://archive.ics.uci.edu/ml/datasets/Dermatology
+* Dataset G. Spam - https://archive.ics.uci.edu/ml/datasets/Spambase
+* Dataset H. Yeast - https://archive.ics.uci.edu/ml/datasets/Yeast
+
+1. Familiarize yourself with the dataset descriptions. What are the features of the dataset and what are you trying to predict? 
+
+
+
+2. Pull down the data from the UCI site and load into an R dataframe in whatever way your team sees as best. This step is entirely one of "data wrangling and cleaning" - a topic that we've avoided so far in class, but is an inevitable part of data science. This step probably won't require web-scraping, but it will take a little effort. 
+
+```{r}
+s = read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data")
+data <- read.table(file="https://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data", sep=",")
+``` 
+
+3. Now that you have a dataframe, do some Exploratory Data Analysis. Come up with some visualizations that help you understand the features and their relationship to the target variable. 
+
+```{r}
+unique(s)
+```
+
+4. Split your data into a training set and a test set.
+
+5. Fit your data with a "baseline" model (either linear regression or logistic regression). Which variables seem to be important? 
+
+6. Fit your data with a decision tree. Visualize the tree and comment on the results when the model is applied to the test set.
+
+7. Fit your data with bagging (with decision trees). Compare with results from part 5.
+
+8. If your dataset has many features, fit your data with a random forest model. Comment on the results when the model is applied to the test set.
+
+9. Fit your data with a boosted tree model. Comment on the results when the model is applied to the test set.
+
+
+# Support Vector Machines (Lite)
+
+```{r,echo = F}
+set.seed(123)
+# make two linearly separated point sets 
+#
+# This generates two normally distributed point sets in the plane, 
+# each of size N, that are separated by dist
+# as a matrix x
+# together with an indicator vector  y  with entries1 and -1.
+# The function also makes a colored plot of the two sets.
+
+makelinear = function(N,dist, makeplot = T){
+  x=matrix(rnorm(4*N),2*N,2)
+  y=rep(c(-1,1),c(N,N))
+  x[y==1,]=x[y==1,] + dist
+  if(makeplot){plot(x,col=y+3,pch=19)}
+  return(list(x=x,y=y))
+}
+
+# makegrid function
+make.grid=function(x,n=75){
+  grange=apply(x,2,range)
+  x1=seq(from=grange[1,1],to=grange[2,1],length=n)
+  x2=seq(from=grange[1,2],to=grange[2,2],length=n)
+  expand.grid(X1=x1,X2=x2)
+}
+
+```
+
+## Max Margin
+
+Two linearly separable datasets. Here, we find the MaxMargin classifier that separates the sets.
+```{r, fig.width=5, echo = F}
+A = makelinear(100, dist = 4.5, makeplot = F)
+x = A$x
+y = A$y
+linear.data1 = data.frame(x,y=as.factor(y))
+svm.model1 = svm(y~.,data =linear.data1,kernel="linear",cost=100,scale=FALSE)
+xgrid = make.grid(x)
+ygrid = predict(svm.model1,xgrid)
+plot(xgrid,col=c("red","blue")[as.numeric(ygrid)],pch=20,cex=.2)
+points(x,col=y+3,pch=19)
+points(x[svm.model1$index,],pch=5,cex=2)
+beta=drop(t(svm.model1$coefs)%*%x[svm.model1$index,])
+beta0=svm.model1$rho
+abline(beta0/beta[2],-beta[1]/beta[2])
+#abline((beta0-1)/beta[2],-beta[1]/beta[2],lty=2)
+#abline((beta0+1)/beta[2],-beta[1]/beta[2],lty=2)
+```
+
+# Support Vector Classifier
+What if the two classes aren't perfectly separable? We can still find a separating hyperplane that does a "good" job, and just incurs some penalty for not perfectly separating the classes. The MaxMargin classifier with this relaxation is called the Support Vector Classifier, and it parameterized by a tunable "Cost" parameter.
+
+
+
+Make two datasets with smaller separation. Use svm with two different cost functions to see the effect. It can be seen that a higher cost leads to a smller region where $y=1$ is predicted (blue region).
+
+```{r}
+par(mfrow = c(1,2))
+A = makelinear(20, dist = 2, makeplot = F)
+x = A$x
+y = A$y
+linear.data1 = data.frame(x,y=as.factor(y))
+xgrid = make.grid(x)
+# make model with cost = 1
+svm.model1 = svm(y~.,data =linear.data1,kernel="linear",cost=1,scale=FALSE)
+ygrid1 = predict(svm.model1,xgrid)
+plot(xgrid,col=c("red","blue")[as.numeric(ygrid1)],pch=20,cex=.2, 
+     main = "Cost = 1")
+points(x,col=y+3,pch=19)
+points(x[svm.model1$index,],pch=5,cex=2)
+beta=drop(t(svm.model1$coefs)%*%x[svm.model1$index,])
+beta0=svm.model1$rho
+abline(beta0/beta[2],-beta[1]/beta[2])
+abline((beta0-1)/beta[2],-beta[1]/beta[2],lty=2)
+abline((beta0+1)/beta[2],-beta[1]/beta[2],lty=2)
+# make model with cost = 10
+svm.model10 = svm(y~.,data =linear.data1,kernel="linear",cost=10,scale=FALSE)
+ygrid10 = predict(svm.model10,xgrid)
+plot(xgrid,col=c("red","blue")[as.numeric(ygrid10)],pch=20,cex=.2, 
+     main = "Cost = 10")
+points(x,col=y+3,pch=19)
+points(x[svm.model10$index,],pch=5,cex=2)
+beta=drop(t(svm.model10$coefs)%*%x[svm.model10$index,])
+beta0=svm.model10$rho
+abline(beta0/beta[2],-beta[1]/beta[2])
+abline((beta0-1)/beta[2],-beta[1]/beta[2],lty=2)
+abline((beta0+1)/beta[2],-beta[1]/beta[2],lty=2)
+```
+

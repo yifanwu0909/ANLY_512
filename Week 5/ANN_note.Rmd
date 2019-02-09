@@ -1,0 +1,187 @@
+---
+title: "ANN_note"
+author: "Yifan Wu"
+date: "February 23, 2018"
+output: html_document
+---
+
+```{r}
+library("ISLR")
+library("nnet")
+library(pROC)
+
+Auto1 <- Auto
+Auto1$name <- NULL
+Auto1$mpg01 <- as.numeric(Auto1$mpg > median(Auto$mpg))
+
+Auto2 <- Auto1[, -1]
+```
+
+```{r}
+plot(Auto2$horsepower, Auto2$weight, col = Auto2$mpg01 + 1)
+```
+
+```{r}
+my.logistic.fit.1 <- glm(mpg01 ~ horsepower + weight , data = Auto2)
+summary(my.logistic.fit.1)
+```
+
+```{r}
+Auto3 <- Auto2[, -c(2,5)]
+head(Auto3)
+
+my.logistic.fit.2 <- glm(mpg01 ~ ., data = Auto3)
+summary(my.logistic.fit.2)
+
+```
+
+
+```{r}
+auc(Auto2$mpg01, predict(my.logistic.fit.2, Auto3))
+z2 <- predict(my.logistic.fit.2, type = "response")
+table(z2 > 0.5, Auto2$mpg01)#use both is fine
+table(z2 > 0.5, Auto3$mpg01)#use both is fine
+```
+
+#NN:
+
+
+```{r}
+my.net.1 <- nnet(mpg01 ~ weight + horsepower, data = Auto2, size = 1, decay = .1)
+#size = number of hidden neuron in the hidden layer. 
+#decay = leanring and optimizaiton mechanism, try our different values. #Hyperperemater, need hand tuning 
+my.net.1 <- nnet(mpg01 ~ ., data = Auto2, size = 8, maxit = 1000)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
