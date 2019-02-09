@@ -1,0 +1,290 @@
+---
+title: "HW6"
+author: "Yifan Wu"
+date: "March 29, 2018"
+output: html_document
+---
+
+##Q1. Section 5.4, #8 [10 pts]
+
+
+### (a). In this data set, what is n and what is p? Write out the model used to generate the data in equation form.
+
+```{r}
+set.seed (1)
+x=rnorm (100)
+y=x-2*x^2+ rnorm (100)
+```
+
+Here $n = 100$ and $p = 2$, the model is $Y = X - 2X^2 + \varepsilon$
+
+### (b). Create a scatterplot of X against Y . Comment on what you find.
+
+```{r}
+plot(x, y)
+```
+
+From the above plot we can see that, there is an obvious concave curved relationship between x and y. 
+
+### (c). Set a random seed, and then compute the LOOCV errors that result from fitting the following four models using least squares:
+
+For $Y = \beta_0 + \beta_1X + \varepsilon$:
+
+```{r}
+library(boot)
+set.seed(1)
+Data <- data.frame(x, y)
+fit.glm.1 <- glm(y ~ x)
+cv.glm(Data, fit.glm.1)$delta[1]
+```
+
+For $Y = \beta_0 + \beta_1X + \beta_2X^2 + \varepsilon$
+
+```{r}
+fit.glm.2 <- glm(y ~ poly(x, 2))
+cv.glm(Data, fit.glm.2)$delta[1]
+```
+
+For $Y = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \varepsilon$
+
+```{r}
+fit.glm.3 <- glm(y ~ poly(x, 3))
+cv.glm(Data, fit.glm.3)$delta[1]
+```
+
+For $Y = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \beta_4X^4 + \varepsilon$
+
+```{r}
+fit.glm.4 <- glm(y ~ poly(x, 4))
+cv.glm(Data, fit.glm.4)$delta[1]
+```
+
+### (d).  Repeat (c) using another random seed, and report your results. Are your results the same as what you got in (c) ? Why ?
+
+For $Y = \beta_0 + \beta_1X + \varepsilon$:
+
+```{r}
+library(boot)
+set.seed(0329)
+Data <- data.frame(x, y)
+fit.glm.1 <- glm(y ~ x)
+cv.glm(Data, fit.glm.1)$delta[1]
+```
+
+For $Y = \beta_0 + \beta_1X + \beta_2X^2 + \varepsilon$
+
+```{r}
+fit.glm.2 <- glm(y ~ poly(x, 2))
+cv.glm(Data, fit.glm.2)$delta[1]
+```
+
+For $Y = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \varepsilon$
+
+```{r}
+fit.glm.3 <- glm(y ~ poly(x, 3))
+cv.glm(Data, fit.glm.3)$delta[1]
+```
+
+For $Y = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \beta_4X^4 + \varepsilon$
+
+```{r}
+fit.glm.4 <- glm(y ~ poly(x, 4))
+cv.glm(Data, fit.glm.4)$delta[1]
+```
+
+The result CV error are exactly the same when we set the seed otherwise, this is because when using LOOCV, we the validastion set is each single observation. It does not matter how we split the data set in the first place. 
+
+### (e). Which of the models in (c) had the smallest LOOCV error? Is this what you expected? Explain your answer.
+
+The quadradic model in (c) has the smallest LOOCV error because the true shape can be best described in a quadratic shape.  
+
+
+### (f). Comment on the statistical significance of the coefficient estimates that results from fitting each of the models in (c) using least squares. Do these results agree with the conclusions drawn based on the cross-validation results?
+
+```{r}
+summary(fit.glm.1)
+```
+
+```{r}
+summary(fit.glm.2)
+```
+
+```{r}
+summary(fit.glm.3)
+```
+
+
+```{r}
+summary(fit.glm.4)
+```
+
+For each of the model, the coefficient of the intercept, $X$, $x^2$ are all significant and $X^3$, $X^4$ are not. This agree with the conclusion in the last question because when we reach to cubic and the 4th degree, the model starts to overfit.
+
+
+##Q2. Section 6.8, #1 [5pts]
+
+### (a). 
+
+Best subset selection will have the lowest RSS of the three methods. The reason for this is that because the model will choose after condisering all possible models with K predictiors. For forward and backward step selection, this is not the case. 
+
+###(b). Which of the three models with k predictors has the smallest test RSS?
+
+We cannot say which method will derive better test RSS result. Just because the best subset selection does the best on training set, does not mean that this will still be the case on test set. 
+
+### (c). 
+
+(i). True
+
+The k + 1 predictor model is built upon the last k predictor model plus one best additional feature. 
+
+(ii). True
+
+the k variable model contains all but minus one feature in the k+1 best model, minus the single feature resulting in the smallest gain in RSS.
+
+(iii). False
+
+Sets identified by forward and backward selection might disjoint. 
+
+(iv). False
+
+There is no direct relationship between the models obtained from forward and backward selection.
+
+(v). False
+
+The features in k + 1 variables models is not build upon the one with k variables so they might disjoint. 
+
+##Q3. Section 6.8, #2ab [5pts]
+
+###(a). 
+
+(i). False
+
+
+(ii). False
+
+
+(iii). True
+
+
+(iv). False
+
+The lasso is a more restrictive model, and thus it has the possibility of reducing overfitting and variance in predictions. As long as it does not result in too high of a bias due to its added constraints, it will perform better than least squares.
+
+###(b). 
+
+(i). False
+
+
+(ii). False
+
+
+(iii). True
+
+
+(iv). False
+
+Same as lasso, ridge regression is less flexible and will give improved prediction accuracy when its increase in bias is less than its decrease in variance.
+
+##Q4. Section 6.8, #9abcd [5pts]
+
+
+###(a). 
+
+```{r}
+library(ISLR)
+data(College)
+set.seed(11)
+
+train = sample(1:dim(College)[1], dim(College)[1] / 2)
+#1:dim(College)[1]: Sample all rows, 
+#dim(College)[1] / 2: only keep half of them
+#here sample()... is a function, not in dim form, the first and the second argument are not rows and cols. 
+test = -train
+
+College.train <- College[train, ]
+College.test <- College[test, ]
+```
+
+
+###(b).
+
+```{r}
+fit.lm <- lm(Apps ~ ., data = College.train)
+pred.lm <- predict(fit.lm, College.test)
+mean((pred.lm - College.test$Apps)^2)
+```
+The test MSE is $1.538442\times 10^6$.
+
+###(c). 
+
+```{r}
+library(glmnet)
+
+set.seed(0329)
+x=model.matrix(Apps ~ ., data = College.train )[,-1]
+y=College.train$Apps
+
+grid <- 10 ^ seq(10, -10, length = 1000)
+ridge.mod =glmnet(x, y, alpha=0, lambda = grid, thresh = 1e-12)
+#dim(coef(ridge.mod ))
+
+cv.out =cv.glmnet(x, y, alpha=0, lambda = grid, thresh = 1e-12)
+plot(cv.out)
+bestlam =cv.out$lambda.min
+bestlam
+```
+
+
+```{r}
+x_test=model.matrix (Apps ~.,College.test )[,-1]
+y_test=College.test$Apps
+
+ridge.pred = predict(ridge.mod, s=bestlam, newx=x_test)
+mean((ridge.pred - y_test)^2)
+
+```
+
+The test MSE is $1.640977 \times 10^6$, higher for ridge regression than for least squares.
+
+
+###(d).
+
+```{r}
+set.seed(0329)
+lasso.mod =glmnet(x, y, alpha=1, lambda = grid, thresh = 1e-12)
+#dim(coef(ridge.mod ))
+
+cv.out2 =cv.glmnet(x, y, alpha=1, lambda = grid, thresh = 1e-12)
+plot(cv.out2)
+bestlam2 =cv.out2$lambda.min
+bestlam2
+
+```
+
+
+```{r}
+
+lasso.pred = predict(lasso.mod, s=bestlam2, newx=x_test)
+mean((lasso.pred - y_test)^2)
+```
+
+The test MSE is also higher for lasso regression than for least squares.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
